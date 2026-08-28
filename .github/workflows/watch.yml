@@ -1,0 +1,60 @@
+name: seat watch
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub's scheduler is best-effort and runs late under
+    # load, so treat this as "roughly every 10-20 minutes", not a guarantee.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+# Never let two sweeps overlap: they would compete for the same API rate-limit
+# window and throttle each other into failure.
+concurrency:
+  group: seat-watch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          uv run playwright install --with-deps chromium
+
+      - name: Check for released seats
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          IMAX_STATE_DIR: state
+          # The runner has no Google Chrome channel; use bundled Chromium.
+          IMAX_BROWSER_CHANNEL: ""
+        run: uv run python -m sniper.cloud
+
+      - name: Persist the diff baseline
+        run: |
+          if [[ -n "$(git status --porcelain state/)" ]]; then
+            git config user.name  "imax-sniper"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add state/
+            git commit -m "state: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          else
+            echo "no change to persist"
+          fi

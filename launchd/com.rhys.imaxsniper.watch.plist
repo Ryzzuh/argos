@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.rhys.imaxsniper.watch</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/Rhys/Projects/imax_sniper/bin/run.sh</string>
+    <string>watch</string>
+    <string>--within-days</string>
+    <string>14</string>
+    <string>--no-report</string>
+  </array>
+  <key>StartInterval</key><integer>600</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/Rhys/Projects/imax_sniper/data/watch.log</string>
+  <key>StandardErrorPath</key><string>/Users/Rhys/Projects/imax_sniper/data/watch.log</string>
+</dict>
+</plist>

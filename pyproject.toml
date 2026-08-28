@@ -1,0 +1,12 @@
+[project]
+name = "imax-sniper"
+version = "0.1.0"
+description = "Seat monitor for THE ODYSSEY (IMAX 70mm) at IMAX Melbourne"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "playwright>=1.44",
+]
+
+[tool.uv]
+package = false
