@@ -54,7 +54,7 @@ def desktop_fallback(text: str) -> None:
     try:
         subprocess.run(
             ["osascript", "-e",
-             f'display notification "{body}" with title "IMAX Sniper" sound name "Sosumi"'],
+             f'display notification "{body}" with title "Argos" sound name "Sosumi"'],
             check=False, capture_output=True, timeout=10,
         )
     except Exception:
@@ -110,5 +110,5 @@ def send(text: str, *, disable_preview: bool = True) -> bool:
 
 
 if __name__ == "__main__":
-    ok = send("*IMAX Sniper* — notification test. If you can read this, alerts work.")
+    ok = send("*Argos* — notification test. If you can read this, alerts work.")
     print("delivered" if ok else "FAILED (check desktop notification)")

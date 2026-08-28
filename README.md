@@ -1,4 +1,10 @@
-# IMAX Sniper
+# Argos
+
+> Odysseus's dog, who waited twenty years on a dung heap and was the only one to
+> know his master the instant he walked through the gate. Also Argus Panoptes,
+> the hundred-eyed watchman who never closed every eye at once — though Hermes
+> did eventually kill him by lulling him to sleep, which is precisely this
+> tool's failure mode when the laptop shuts.
 
 Watches seat availability for **THE ODYSSEY — IMAX 70MM PRESENTATION** at IMAX
 Melbourne and pushes a Telegram alert the moment a genuinely bookable seat is
@@ -25,11 +31,11 @@ this tool reports is counted from the actual seat map and split by seat type.
 
 ```bash
 uv sync                                    # once
-uv run python -m sniper.token              # mint a token (prints expiry only)
-uv run python -m sniper.scrape             # one full sweep -> SQLite
-uv run python -m sniper.report             # REPORT.md + docs/index.html
-uv run python -m sniper.watch              # sweep, diff, alert, re-render
-uv run python -m sniper.health             # watchdog: is the monitor alive?
+uv run python -m argos.token              # mint a token (prints expiry only)
+uv run python -m argos.scrape             # one full sweep -> SQLite
+uv run python -m argos.report             # REPORT.md + docs/index.html
+uv run python -m argos.watch              # sweep, diff, alert, re-render
+uv run python -m argos.health             # watchdog: is the monitor alive?
 ```
 
 Useful flags:
@@ -62,7 +68,7 @@ caught by the next full sweep, which re-reads the schedule outright.
 
 ```bash
 cp launchd/*.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.rhys.imaxsniper.{watch,full,watchdog}.plist
+launchctl load ~/Library/LaunchAgents/com.rhys.argos.{watch,full,watchdog}.plist
 ```
 
 - **watch** — next 14 days, every 10 min. This is the sniping loop.
@@ -70,7 +76,7 @@ launchctl load ~/Library/LaunchAgents/com.rhys.imaxsniper.{watch,full,watchdog}.
 - **watchdog** — every 2 h, alerts if no sweep has run in 90 min. Deliberately a
   separate process, because the failure it catches is the other two not running.
 
-To unload: `launchctl unload ~/Library/LaunchAgents/com.rhys.imaxsniper.*.plist`
+To unload: `launchctl unload ~/Library/LaunchAgents/com.rhys.argos.*.plist`
 
 ## Running it in the cloud
 
@@ -78,7 +84,7 @@ To unload: `launchctl unload ~/Library/LaunchAgents/com.rhys.imaxsniper.*.plist`
 release is missed. `.github/workflows/watch.yml` runs the same sweep on GitHub
 Actions every ~10 minutes, always on.
 
-`sniper/cloud.py` is the stateless entry point: a runner keeps nothing between
+`argos/cloud.py` is the stateless entry point: a runner keeps nothing between
 invocations, so the diff baseline lives in `state/seats.json`, which the
 workflow commits back to the repo whenever it changes. That file holds seat ids,
 labels and timestamps only — never a credential. On a first run with no state,
@@ -96,7 +102,7 @@ Two things to know before relying on it:
 Setup:
 
 ```bash
-gh repo create imax_sniper --public --source=. --push   # or push to a repo you made
+gh repo create argos --public --source=. --push   # or push to a repo you made
 gh secret set TELEGRAM_BOT_TOKEN < <(grep -o '[^=]*$' ~/.claude/channels/telegram/.env)
 gh secret set TELEGRAM_CHAT_ID  --body "$(python3 -c "import json;print(json.load(open('$HOME/.claude/channels/telegram/access.json'))['allowFrom'][0])")"
 gh workflow run "seat watch"                            # verify before trusting it
@@ -108,7 +114,7 @@ Once CI is verified, drop the local watcher and keep the 3-hourly full sweep for
 the report page:
 
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.rhys.imaxsniper.watch.plist
+launchctl unload ~/Library/LaunchAgents/com.rhys.argos.watch.plist
 ```
 
 ## How it gets the data

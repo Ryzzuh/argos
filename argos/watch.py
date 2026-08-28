@@ -131,6 +131,7 @@ def main() -> None:
                              "formatting and delivery without waiting for a release")
     args = parser.parse_args()
 
+    health.claim_single_instance()
     if args.replay is not None:
         seats = store.bookable_seats_in(args.replay)
         if not seats:

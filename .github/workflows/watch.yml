@@ -45,12 +45,12 @@ jobs:
           IMAX_STATE_DIR: state
           # The runner has no Google Chrome channel; use bundled Chromium.
           IMAX_BROWSER_CHANNEL: ""
-        run: uv run python -m sniper.cloud
+        run: uv run python -m argos.cloud
 
       - name: Persist the diff baseline
         run: |
           if [[ -n "$(git status --porcelain state/)" ]]; then
-            git config user.name  "imax-sniper"
+            git config user.name  "argos"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add state/
             git commit -m "state: $(date -u +%Y-%m-%dT%H:%MZ)"

@@ -19,7 +19,7 @@ DATA = Path(os.environ.get("IMAX_DATA_DIR", ROOT / "data"))
 STATE = Path(os.environ.get("IMAX_STATE_DIR", DATA))
 DOCS = ROOT / "docs"
 
-DB_PATH = DATA / "sniper.db"
+DB_PATH = DATA / "argos.db"
 TOKEN_CACHE = DATA / ".token.json"
 LAYOUT_CACHE = DATA / "seat-layout-{layout_id}.json"
 HEARTBEAT = STATE / "heartbeat.json"

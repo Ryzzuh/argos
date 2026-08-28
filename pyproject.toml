@@ -1,5 +1,5 @@
 [project]
-name = "imax-sniper"
+name = "argos"
 version = "0.1.0"
 description = "Seat monitor for THE ODYSSEY (IMAX 70mm) at IMAX Melbourne"
 requires-python = ">=3.11"

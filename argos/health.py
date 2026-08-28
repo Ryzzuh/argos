@@ -8,6 +8,7 @@ for its absence.
 """
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import traceback
@@ -16,28 +17,28 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import notify
-from .config import (ALERT_STATE, ERROR_LOG, HEARTBEAT, HEARTBEAT_STALE_MINUTES,
-                     TZ)
+from .config import (ALERT_STATE, DATA, ERROR_LOG, HEARTBEAT,
+                     HEARTBEAT_STALE_MINUTES, TZ)
 
 # While a failure persists, re-alert at most this often.
 REALERT_AFTER = timedelta(hours=1)
 
 
-class SniperError(RuntimeError):
+class ArgosError(RuntimeError):
     """Base for failures worth telling a human about."""
-    signature = "sniper"
+    signature = "argos"
 
 
-class TokenError(SniperError):
+class TokenError(ArgosError):
     signature = "token"
 
 
-class SchemaDrift(SniperError):
+class SchemaDrift(ArgosError):
     """The API no longer looks the way we expect. Never treat as 'no results'."""
     signature = "schema"
 
 
-class SweepError(SniperError):
+class SweepError(ArgosError):
     signature = "sweep"
 
 
@@ -89,12 +90,12 @@ def report_failure(signature: str, message: str, *, detail: str = "") -> None:
             _save(ALERT_STATE, state)      # count it, stay quiet
             return
         since = _local(datetime.fromisoformat(entry["first_seen"]))
-        text = (f"⚠️ *IMAX Sniper still failing* — `{signature}`\n\n{message}\n\n"
+        text = (f"⚠️ *Argos still failing* — `{signature}`\n\n{message}\n\n"
                 f"Failing since {since} ({entry['count']} runs).")
     else:
         entry = {"first_seen": now.isoformat(), "count": 1}
         failures[signature] = entry
-        text = f"⚠️ *IMAX Sniper failed* — `{signature}`\n\n{message}"
+        text = f"⚠️ *Argos failed* — `{signature}`\n\n{message}"
 
     if detail:
         text += f"\n\n```\n{detail[:600]}\n```"
@@ -117,7 +118,7 @@ def report_recovery(signature: str) -> None:
         return
 
     since = _local(datetime.fromisoformat(entry["first_seen"]))
-    text = (f"✅ *IMAX Sniper recovered* — `{signature}`\n\n"
+    text = (f"✅ *Argos recovered* — `{signature}`\n\n"
             f"Working again after {entry.get('count', 1)} failed runs since {since}.")
 
     undelivered = state.pop("undelivered", 0)
@@ -167,7 +168,7 @@ def maybe_send_digest(summary: str) -> None:
     today = datetime.now(TZ).date().isoformat()
     if state.get("last_digest") == today or datetime.now(TZ).hour < 9:
         return
-    if notify.send(f"📋 *IMAX Sniper daily check-in*\n\n{summary}"):
+    if notify.send(f"📋 *Argos daily check-in*\n\n{summary}"):
         state["last_digest"] = today
         _save(ALERT_STATE, state)
 
@@ -176,12 +177,37 @@ def maybe_send_digest(summary: str) -> None:
 # top-level guard
 # --------------------------------------------------------------------------
 
+_LOCKS: list = []
+
+
+def claim_single_instance(name: str = "sweep") -> None:
+    """Ensure only one sweep runs at a time, or exit quietly.
+
+    The watchlist and full-sweep schedules are harmonic - every third hour they
+    fire together - and two concurrent sweeps simply exhaust the same
+    41-request window and throttle each other into failure. The loser skips its
+    turn rather than queueing, because by the next tick the data it wanted is
+    already being fetched by the winner.
+    """
+    DATA.mkdir(parents=True, exist_ok=True)
+    handle = (DATA / f".{name}.lock").open("w")
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        print("another sweep is already running; skipping this tick")
+        raise SystemExit(0)
+    # Held for the life of the process; the OS drops it on exit, including a
+    # crash, so there is no stale lock to clean up.
+    _LOCKS.append(handle)
+
+
 @contextmanager
 def guard(signature: str):
     """Wrap a run so any escaping exception is reported rather than swallowed."""
     try:
         yield
-    except SniperError as exc:
+    except ArgosError as exc:
         report_failure(getattr(exc, "signature", signature), str(exc),
                        detail=traceback.format_exc())
         write_heartbeat("failed", error=str(exc))

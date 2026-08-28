@@ -12,7 +12,7 @@ from .token import token_expiry
 def _load():
     snap = store.latest_full_snapshot()
     if snap is None:
-        raise SystemExit("no snapshots yet — run `uv run python -m sniper.scrape` first")
+        raise SystemExit("no snapshots yet — run `uv run python -m argos.scrape` first")
     rows = store.snapshot_rows(snap["id"])
 
     seats: dict[str, list] = {}

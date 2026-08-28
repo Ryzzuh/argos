@@ -4,4 +4,4 @@
 set -u
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-exec uv run python -m "sniper.$1" "${@:2}"
+exec uv run python -m "argos.$1" "${@:2}"

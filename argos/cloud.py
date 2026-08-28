@@ -101,6 +101,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
+    health.claim_single_instance()
     with health.guard("sweep"):
         reports, summary = asyncio.run(sweep(verbose=False))
 
