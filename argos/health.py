@@ -155,6 +155,15 @@ def check_heartbeat() -> int:
         )
         return 1
 
+    if beat.get("outcome") == "failed":
+        report_failure(
+            "watchdog",
+            "The monitor is running but every sweep is failing, so the heartbeat "
+            "stays fresh while nothing is actually being checked.\n"
+            f"Last error: {beat.get('error', 'unknown')}",
+        )
+        return 1
+
     report_recovery("watchdog")
     return 0
 

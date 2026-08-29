@@ -1,20 +1,15 @@
 # THE ODYSSEY - IMAX 70MM PRESENTATION — seat availability
 
-*Swept Fri 28 Aug 2026, 22:15 (Melbourne). Snapshot #12. 76 sessions checked.*
+*Swept Sat 29 Aug 2026, 21:34 (Melbourne). Snapshot #15. 70 sessions checked.*
 
 ## The short version
 
-**0 general-admission seat(s) free right now, across 4 of 76 sessions.**
-
-- **Fri 28 Aug 10:10pm** — 1 seat(s): A32 — [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23048/seats)
-- **Tue 1 Sep 1:50pm** — 3 seat(s): A30, B12, C31 — [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23060/seats)
-- **Tue 1 Sep 5:25pm** — 2 seat(s): A27, B36 — [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23061/seats)
-- **Tue 1 Sep 9:00pm** — 8 seat(s): A13, A14, A28, A29, A30, A31, B35, B36 — [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23062/seats)
+**No general-admission seats are free in any session.**
 
 Two things worth knowing about this listing:
 
 1. **The film id in the website URL is what matters, not the slug.** `HO00000547` is the IMAX 70mm presentation. `HO00000546` is the 4K Laser version, and `HO00000545` is an unrelated film with no sessions at all — which is why that URL shows an empty date picker rather than an error.
-2. **The site's own `isSoldOut` flag is not trustworthy.** 35 of 76 sessions claim they are not sold out, but most of those have nothing free except the wheelchair and companion spaces in row M. Every number below is counted from the actual seat map instead.
+2. **The site's own `isSoldOut` flag is not trustworthy.** 31 of 70 sessions claim they are not sold out, but most of those have nothing free except the wheelchair and companion spaces in row M. Every number below is counted from the actual seat map instead.
 
 ## Every session
 
@@ -22,26 +17,20 @@ Accessible spaces are counted separately because they are almost always free and
 
 | Session | Free to book | Accessible | House | Sold | |
 |---|---:|---:|---:|---:|---|
-| Fri 28 Aug 10:10pm | **1** (A32) | 3 | 3 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23048/seats) |
-| Sat 29 Aug 10:15am | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23049/seats) |
-| Sat 29 Aug 1:50pm | — | 3 | 2 | 454 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23050/seats) |
-| Sat 29 Aug 5:25pm | — | 2 | 4 | 453 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23051/seats) |
-| Sat 29 Aug 9:00pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23052/seats) |
 | Sun 30 Aug 10:15am | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23053/seats) |
-| Sun 30 Aug 1:50pm | — | 3 | 2 | 454 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23054/seats) |
+| Sun 30 Aug 1:50pm | — | 1 | 2 | 456 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23054/seats) |
 | Sun 30 Aug 5:25pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23055/seats) |
-| Sun 30 Aug 9:00pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23056/seats) |
+| Sun 30 Aug 9:00pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23056/seats) |
 | Mon 31 Aug 1:50pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23057/seats) |
 | Mon 31 Aug 5:25pm | — | 2 | 4 | 453 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23058/seats) |
-| Mon 31 Aug 9:00pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23059/seats) |
-| Tue 1 Sep 1:50pm | **3** (A30, B12, C31) | 0 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23060/seats) |
-| Tue 1 Sep 5:25pm | **2** (A27, B36) | 6 | 4 | 447 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23061/seats) |
-| Tue 1 Sep 9:00pm | **8** (A13, A14, A28, A29, A30, A31, B35, B36) | 6 | 4 | 441 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23062/seats) |
+| Mon 31 Aug 9:00pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23059/seats) |
+| Tue 1 Sep 1:50pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23060/seats) |
+| Tue 1 Sep 5:25pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23061/seats) |
+| Tue 1 Sep 9:00pm | — | 2 | 4 | 453 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23062/seats) |
 | Wed 2 Sep 4:10pm | — | 2 | 4 | 453 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23063/seats) |
 | Wed 2 Sep 7:45pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23064/seats) |
 | Thu 3 Sep 1:50pm | — | 1 | 4 | 454 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23065/seats) |
 | Thu 3 Sep 5:25pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23066/seats) |
-| Thu 3 Sep 9:00pm | — | 1 | 4 | 454 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23067/seats) |
 | Fri 4 Sep 1:50pm | — | 2 | 4 | 453 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23068/seats) |
 | Fri 4 Sep 5:25pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23069/seats) |
 | Fri 4 Sep 9:00pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23070/seats) |
@@ -56,13 +45,13 @@ Accessible spaces are counted separately because they are almost always free and
 | Tue 8 Sep 1:50pm | — | 2 | 4 | 453 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23079/seats) |
 | Tue 8 Sep 5:25pm | — | 3 | 2 | 454 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23109/seats) |
 | Tue 8 Sep 9:00pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23080/seats) |
-| Wed 9 Sep 5:00pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23081/seats) |
+| Wed 9 Sep 5:00pm | — | 1 | 4 | 454 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23081/seats) |
 | Thu 10 Sep 3:00pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23097/seats) |
 | Thu 10 Sep 9:15pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23098/seats) |
 | Fri 11 Sep 3:00pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23099/seats) |
 | Fri 11 Sep 9:15pm | — | 2 | 4 | 453 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23100/seats) |
-| Sat 12 Sep 10:45am | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23101/seats) |
-| Sat 12 Sep 9:00pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23102/seats) |
+| Sat 12 Sep 10:45am | — | 2 | 4 | 453 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23101/seats) |
+| Sat 12 Sep 9:00pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23102/seats) |
 | Sun 13 Sep 10:45am | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23103/seats) |
 | Sun 13 Sep 5:10pm | — | 3 | 2 | 454 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23104/seats) |
 | Sun 13 Sep 8:45pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23105/seats) |
@@ -80,7 +69,7 @@ Accessible spaces are counted separately because they are almost always free and
 | Mon 21 Sep 12:20pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23089/seats) |
 | Mon 21 Sep 9:35pm | — | 1 | 4 | 454 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23090/seats) |
 | Tue 22 Sep 3:45pm | — | 2 | 4 | 453 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23091/seats) |
-| Tue 22 Sep 9:35pm | — | 3 | 4 | 452 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23092/seats) |
+| Tue 22 Sep 9:35pm | — | 5 | 4 | 450 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23092/seats) |
 | Wed 23 Sep 3:45pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23093/seats) |
 | Wed 23 Sep 9:35pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23094/seats) |
 | Thu 24 Sep 5:15pm | — | 0 | 0 | 459 | [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23168/seats) |
@@ -120,4 +109,9 @@ The site is a Next.js front end over Vista's Movie XChange OCAPI. All of it is r
 | `/seat-layouts/{id}` | row/seat labels and seat types |
 | `/showtimes/{id}/seat-availability` | per-seat Available / Sold / House |
 
-Bearer token valid until Sat 29 Aug 04:00.
+Bearer token valid until Sun 30 Aug 08:00.
+The API allows ~41 requests per rolling minute; this sweep absorbed 23 throttle response(s) and waited them out.
+
+**Warnings this sweep:**
+
+- 1 showtime lookup(s) failed and were skipped

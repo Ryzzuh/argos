@@ -74,7 +74,11 @@ class _WindowLimiter:
 
 class Ocapi:
     def __init__(self, token: str | None = None):
-        self._token = token or get_token()
+        # Deliberately does NOT mint here. Minting drives Playwright's *sync*
+        # API, and this object is constructed inside the running event loop, so
+        # doing it here raises "Sync API inside the asyncio loop" the moment the
+        # cached token expires. Acquired in __aenter__ off-thread instead.
+        self._token = token
         self._sem = asyncio.Semaphore(MAX_CONCURRENCY)
         self._limiter = _WindowLimiter(WINDOW_LIMIT, WINDOW_SECONDS, MIN_SPACING)
         self._client: httpx.AsyncClient | None = None
@@ -83,6 +87,8 @@ class Ocapi:
         self.throttled = 0
 
     async def __aenter__(self) -> "Ocapi":
+        if self._token is None:
+            self._token = await asyncio.to_thread(get_token)
         self._client = httpx.AsyncClient(
             base_url=API_BASE,
             timeout=httpx.Timeout(25.0),
