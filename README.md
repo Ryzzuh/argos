@@ -78,74 +78,36 @@ launchctl load ~/Library/LaunchAgents/com.rhys.argos.{watch,full,watchdog}.plist
 
 To unload: `launchctl unload ~/Library/LaunchAgents/com.rhys.argos.*.plist`
 
-## Running it in the cloud
+## Why this does not run in the cloud
 
-`launchd` agents only run while the Mac is awake and logged in, so an overnight
-release is missed. `.github/workflows/watch.yml` runs the same sweep on GitHub
-Actions every ~10 minutes, always on.
+It was tried and it does not work. `.github/workflows/watch.yml` is kept, with
+its schedule disabled, so the finding stays reproducible via **Run workflow**.
 
-`argos/cloud.py` is the stateless entry point: a runner keeps nothing between
-invocations, so the diff baseline lives in `state/seats.json`, which the
-workflow commits back to the repo whenever it changes. That file holds seat ids,
-labels and timestamps only — never a credential. On a first run with no state,
-it deliberately alerts about nothing rather than reporting all 459 seats.
+A GitHub runner is served a Cloudflare challenge instead of the page, so there
+is no token to extract:
 
-Two things to know before relying on it:
-
-- **Use a public repo, or watch your minutes.** Actions is free and unmetered on
-  public repos; a private repo gets 2000 minutes/month, and a 10-minute cadence
-  burns roughly three times that. Nothing secret lives in the code — credentials
-  are read from environment variables at runtime.
-- **GitHub's scheduler is best-effort.** Cron jobs run late under load, so the
-  real cadence is more like every 10–20 minutes.
-
-Setup, without the `gh` CLI (nothing to install):
-
-1. Create the repository at <https://github.com/new> — name it `argos`, set it
-   **Public**, and do not tick "Add a README".
-
-2. Push. Git will prompt for your username and a password; the password must be
-   a personal access token from <https://github.com/settings/tokens> carrying
-   both the **`repo`** and **`workflow`** scopes. The `workflow` scope is not
-   optional — without it GitHub rejects any push that contains a file under
-   `.github/workflows/`, which is the entire point here. macOS stores it in the
-   keychain, so this is a one-off.
-
-   ```bash
-   git remote add origin https://github.com/<your-username>/argos.git
-   git push -u origin main
-   ```
-
-3. Add two secrets under **Settings → Secrets and variables → Actions → New
-   repository secret**:
-
-   | Name | Value |
-   |---|---|
-   | `TELEGRAM_BOT_TOKEN` | from `~/.claude/channels/telegram/.env` |
-   | `TELEGRAM_CHAT_ID` | your Telegram numeric id |
-
-   To read the bot token out for copying:
-
-   ```bash
-   grep -o '[^=]*$' ~/.claude/channels/telegram/.env
-   ```
-
-4. Go to the **Actions** tab, choose **seat watch**, and hit **Run workflow**.
-   Do this before trusting it: it is the only way to find out whether Cloudflare
-   will let a GitHub runner mint a token, since datacenter IPs get a harder time
-   than your home connection.
-
-
-**Do not run the cloud and the local 10-minute agent at the same time.** They
-compete for the same 41-request window and throttle each other into failure.
-Once CI is verified, drop the local watcher and keep the 3-hourly full sweep for
-the report page:
-
-```bash
-launchctl unload ~/Library/LaunchAgents/com.rhys.argos.watch.plist
+```
+headless: page loaded but no gasToken in __NEXT_DATA__ (likely a Cloudflare challenge)
 ```
 
-## How it gets the data
+The runner used real headless Chrome with a genuine browser TLS fingerprint, so
+this is **IP reputation, not client detection** — which means no VPS will fix
+it either. Only a residential connection gets through. `sniper/cloud.py` and the
+`state/seats.json` diff baseline still work and are exercised locally; they
+would come alive on any always-on machine at home.
+
+The practical consequence: **while this Mac is asleep or off, nothing is
+watched.** launchd agents only run when the machine is awake and logged in, and
+on wake launchd fires a single catch-up run rather than one per missed
+interval. That gap is a deliberate, accepted trade-off, not an oversight. The
+watchdog reports it after the fact, so expect a "no sweep for N minutes"
+message most mornings — it is telling you exactly which window went unwatched.
+
+The published report page is likewise only as fresh as the last time it was
+deployed; `docs/index.html` on disk is regenerated every full sweep and can be
+opened directly.
+
+## How it gets the data## How it gets the data
 
 A Next.js front end ("Lumos") over Vista's Movie XChange OCAPI at
 `digital-api.imaxmelbourne.com.au/ocapi/v1`. Seat availability is a plain
