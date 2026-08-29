@@ -11,6 +11,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import sys
 import traceback
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -65,6 +66,10 @@ def _save(path: Path, payload) -> None:
 
 
 def log_error(text: str) -> None:
+    # Also to stderr: on a CI runner the log file dies with the container, so
+    # without this the build log shows nothing but "exit code 1" and the only
+    # copy of the reason is in a Telegram message.
+    print(text, file=sys.stderr, flush=True)
     ERROR_LOG.parent.mkdir(parents=True, exist_ok=True)
     with ERROR_LOG.open("a") as fh:
         fh.write(f"{_now().isoformat()}  {text}\n")
