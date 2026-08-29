@@ -13,6 +13,8 @@ from pathlib import Path
 
 import httpx
 
+from .config import SOURCE
+
 CHANNEL_DIR = Path.home() / ".claude" / "channels" / "telegram"
 ENV_FILE = CHANNEL_DIR / ".env"
 ACCESS_FILE = CHANNEL_DIR / "access.json"
@@ -62,12 +64,15 @@ def desktop_fallback(text: str) -> None:
 
 
 def send(text: str, *, disable_preview: bool = True) -> bool:
-    """Send a Markdown message. Returns True on delivery.
+    """Send a Markdown message, tagged with the machine that sent it.
+
+    Returns True on delivery.
 
     Never raises: a failure here must not take down the sweep that was trying to
     report something. Falls back to a desktop notification and lets the caller
     record the gap.
     """
+    text = f"{text}\n\n`— {SOURCE}`"
     try:
         token, chat = _bot_token(), _chat_id()
     except NotifyError as exc:

@@ -32,6 +32,22 @@ SEAT_STATE = STATE / "seats.json"
 # have no Google Chrome channel to attach to.
 BROWSER_CHANNEL = os.environ.get("IMAX_BROWSER_CHANNEL", "chrome")
 
+# Every alert says where it came from. The laptop and a CI runner report into
+# the same Telegram chat, and without this an alert from one is indis-
+# tinguishable from the other - which turns a stray message into a wild goose
+# chase through the wrong machine's logs.
+def _source_label() -> str:
+    if os.environ.get("IMAX_SOURCE"):
+        return os.environ["IMAX_SOURCE"]
+    if os.environ.get("GITHUB_ACTIONS"):
+        repo = os.environ.get("GITHUB_REPOSITORY", "github")
+        return f"github actions · {repo}"
+    import socket
+    return socket.gethostname().replace(".local", "")
+
+
+SOURCE = _source_label()
+
 REPORT_MD = ROOT / "REPORT.md"
 REPORT_HTML = DOCS / "index.html"
 
