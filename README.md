@@ -99,14 +99,42 @@ Two things to know before relying on it:
 - **GitHub's scheduler is best-effort.** Cron jobs run late under load, so the
   real cadence is more like every 10–20 minutes.
 
-Setup:
+Setup, without the `gh` CLI (nothing to install):
 
-```bash
-gh repo create argos --public --source=. --push   # or push to a repo you made
-gh secret set TELEGRAM_BOT_TOKEN < <(grep -o '[^=]*$' ~/.claude/channels/telegram/.env)
-gh secret set TELEGRAM_CHAT_ID  --body "$(python3 -c "import json;print(json.load(open('$HOME/.claude/channels/telegram/access.json'))['allowFrom'][0])")"
-gh workflow run "seat watch"                            # verify before trusting it
-```
+1. Create the repository at <https://github.com/new> — name it `argos`, set it
+   **Public**, and do not tick "Add a README".
+
+2. Push. Git will prompt for your username and a password; the password must be
+   a personal access token from <https://github.com/settings/tokens> carrying
+   both the **`repo`** and **`workflow`** scopes. The `workflow` scope is not
+   optional — without it GitHub rejects any push that contains a file under
+   `.github/workflows/`, which is the entire point here. macOS stores it in the
+   keychain, so this is a one-off.
+
+   ```bash
+   git remote add origin https://github.com/<your-username>/argos.git
+   git push -u origin main
+   ```
+
+3. Add two secrets under **Settings → Secrets and variables → Actions → New
+   repository secret**:
+
+   | Name | Value |
+   |---|---|
+   | `TELEGRAM_BOT_TOKEN` | from `~/.claude/channels/telegram/.env` |
+   | `TELEGRAM_CHAT_ID` | your Telegram numeric id |
+
+   To read the bot token out for copying:
+
+   ```bash
+   grep -o '[^=]*$' ~/.claude/channels/telegram/.env
+   ```
+
+4. Go to the **Actions** tab, choose **seat watch**, and hit **Run workflow**.
+   Do this before trusting it: it is the only way to find out whether Cloudflare
+   will let a GitHub runner mint a token, since datacenter IPs get a harder time
+   than your home connection.
+
 
 **Do not run the cloud and the local 10-minute agent at the same time.** They
 compete for the same 41-request window and throttle each other into failure.
