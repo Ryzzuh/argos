@@ -20,6 +20,9 @@ from .model import build_report, build_seat_index
 
 # Above this share of failed showtime lookups, the sweep is not trustworthy.
 MAX_FAILED_FRACTION = 0.2
+# Below this share, skipped lookups are logged and not alerted on: a stray
+# network blip is normal and does not compromise the sweep.
+NOISY_FAILURE_SHARE = 0.1
 
 
 async def _load_showtimes(api: Ocapi, dates: list[str], film_id: str,
@@ -146,10 +149,19 @@ def _finish(results, indexes, dates, title, film_id, throttled):
             f"refusing to report a partial picture. First: {failures[0]}"
         )
 
-    warnings = sorted({w for idx in indexes.values() for w in idx.warnings}
-                      | {w for r in reports for w in r.warnings})
+    # Two very different kinds of problem, deliberately kept apart. Drift means
+    # the data no longer looks like what this code was written against and a
+    # human should look. A skipped lookup is a network blip: the sweep is still
+    # sound, and paging someone about it teaches them to ignore alerts.
+    drift = sorted({w for idx in indexes.values() for w in idx.warnings}
+                   | {w for r in reports for w in r.warnings})
+
+    transient = []
     if failures:
-        warnings.append(f"{len(failures)} showtime lookup(s) failed and were skipped")
+        share = len(failures) / len(results)
+        note = (f"{len(failures)} of {len(results)} showtime lookup(s) failed "
+                f"and were skipped")
+        transient.append(note)
 
     reports.sort(key=lambda r: r.starts_at)
 
@@ -166,8 +178,10 @@ def _finish(results, indexes, dates, title, film_id, throttled):
         "seat_total": next(iter(indexes.values())).total if indexes else 0,
         "breakdown": next(iter(indexes.values())).breakdown() if indexes else {},
         "partial": bool(failures),
+        "failed_share": (len(failures) / len(results)) if results else 0.0,
         "throttled_requests": throttled,
-        "warnings": warnings,
+        "warnings": drift,
+        "transient": transient,
     }
     return reports, summary
 
@@ -178,15 +192,27 @@ def persist(reports, summary):
     summary["snapshot_id"] = store.save_snapshot(reports, partial=summary["partial"])
     (DATA / "last-sweep.json").write_text(json.dumps(summary, indent=2))
 
-    warnings = summary["warnings"]
-    if warnings:
+    if drift := summary["warnings"]:
         health.report_failure(
             "schema",
             "Sweep completed but the data did not look the way it should:\n"
-            + "\n".join(f"• {w}" for w in warnings),
+            + "\n".join(f"• {w}" for w in drift),
         )
     else:
         health.report_recovery("schema")
+
+    # Only worth a human's attention once a meaningful slice of the schedule is
+    # going unchecked; below that it is noise and goes to the log alone.
+    for note in summary.get("transient", []):
+        health.log_error(f"[transient] {note}")
+    if summary.get("failed_share", 0) > NOISY_FAILURE_SHARE:
+        health.report_failure(
+            "coverage",
+            f"{summary['transient'][0]} — enough of the schedule went unchecked "
+            "that a release could have been missed.",
+        )
+    else:
+        health.report_recovery("coverage")
     health.report_recovery("sweep")
     health.report_recovery("token")
 

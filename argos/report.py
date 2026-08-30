@@ -124,8 +124,12 @@ def render_markdown() -> str:
         add(f"The API allows ~41 requests per rolling minute; this sweep absorbed "
             f"{summary['throttled_requests']} throttle response(s) and waited them out.")
     if summary.get("warnings"):
-        add("\n**Warnings this sweep:**\n")
+        add("\n**The data did not look as expected:**\n")
         for w in summary["warnings"]:
+            add(f"- {w}")
+    if summary.get("transient"):
+        add("\n**Skipped this sweep (transient, not alerted):**\n")
+        for w in summary["transient"]:
             add(f"- {w}")
     return "\n".join(out) + "\n"
 
