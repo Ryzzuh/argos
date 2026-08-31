@@ -26,10 +26,14 @@ The Odyssey is screening in IMAX 70mm in Melbourne and it's sold out — except 
 site lists sessions as available anyway, and when you open one the seat map looks
 empty.
 
-It isn't quite empty. It's showing you whatever nobody wanted: a front-row corner
-seat, or one of the six accessibility spaces, which aren't general admission. Of
-the 42 bookable seats this thing has caught in four days, 28 were in the front
-two rows and none were further back than row F. Meanwhile the booking API's own
+It isn't quite empty, and that's the problem: two completely different things
+show up as "available". Some are the six accessibility spaces — reserved, not
+general admission, and not mine to take. The rest are simply the seats that clear
+last. Of the 42 bookable seats this thing has caught in four days, 28 were in the
+front two rows and none were further back than row F. Front-row corner, neck
+craned at a screen the size of a building.
+
+The site draws both in the same colour. Meanwhile the booking API's own
 `isSoldOut` flag reports 34 of those 77 sessions as perfectly fine.
 
 The listing tells you none of it. Session times and nothing else — no seat
@@ -113,8 +117,10 @@ real business:
 - **34 of 77 sessions report `isSoldOut: false`** while having nothing bookable —
   measured across the sweep history, not estimated.
 - **Screen 1 has exactly 4 wheelchair and 2 companion seats**, from the seat
-  layout endpoint. Mentioned as one category of unwanted seat, not as the story —
-  the point is which seats go unsold, not who they are reserved for.
+  layout endpoint. These are *reserved*, not unsold — a different mechanism from
+  a front-row seat nobody has bought yet. Never group the two under language like
+  "seats nobody wanted": it is both offensive and factually wrong, and the real
+  observation is that the site renders two unrelated categories identically.
 - **42 distinct bookable seats found over four days; 28 in rows A-B, none past
   row F.** Straight from the `free_seats` table, deduplicated by seat id.
 - **Returns and expired holds do go back on sale**, which is the finding that
