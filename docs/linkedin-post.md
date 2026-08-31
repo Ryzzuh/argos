@@ -1,149 +1,60 @@
-# LinkedIn post — drafts
+# LinkedIn post
 
-Voice: wry and deadpan. The joke is the disproportion between the engineering and
-the goal, delivered flat. Understatement only works when the detail underneath it
-is real, so every number below is measured, not rounded up for effect.
+Short feed post. Its only job is to earn the click through to the article at
+<https://ryzzuh.github.io/argos/> — so it lands the hook and the three most
+surprising findings, and stops.
 
-Target ~250 words: long enough to land three findings, short enough that the feed
-does not truncate the payoff.
-
----
-
-## Main draft
-
-I spent a weekend building a monitoring system with a rate limiter, a dead-man's
-switch and a Telegram bot, so that I could buy two cinema tickets.
-
-In my defence, it was necessary.
-
-Here's the thing I didn't know: seats come back. I'd assumed a sold-out session
-was sold out — that if someone couldn't make it, their ticket quietly evaporated.
-It doesn't. Returns and expired holds go back on sale continuously. Nobody tells
-you when. There's no waitlist, no alert, no "let me know if something frees up".
-There's a watchlist, and it saves the film, not the seats.
-
-The Odyssey is screening in IMAX 70mm in Melbourne and it's sold out — except the
-site lists sessions as available anyway, and when you open one the seat map looks
-empty.
-
-It isn't quite empty, and that's the problem: two completely different things
-show up as "available". Some are the six accessibility spaces — reserved, not
-general admission, and not mine to take. The rest are simply the seats that clear
-last. Of the 43 bookable seats this thing has caught in four days, 29 were in the
-front two rows, 79% were at the edges of a row, and not one came from the back
-half of the room.
-
-The site draws every available seat in the same colour. Meanwhile the booking API's own
-`isSoldOut` flag reports 34 of those 77 sessions as perfectly fine.
-
-The listing tells you none of it. Session times and nothing else — no seat
-counts, no filter for row or seat type, no way to ask which sessions have two
-seats together. Finding out means opening 77 seat maps and squinting.
-
-So: ~2,000 lines of Python that ignores the flag, counts the actual seat map by
-seat type, and messages me when a seat a human can actually book appears.
-
-It doesn't book anything. It sends me a link and I do the rest — which, on
-current evidence, gives me about forty minutes to act.
-
-134 sweeps so far. 92 of them found nothing. That ratio is the entire argument
-for automating it.
-
-It's caught three genuine releases. The longest any of them survived was under an
-hour.
-
-To be clear about what this is: read-only, paced well under the rate limit, one
-person buying two tickets. I don't condone or support using it — or anything like
-it — to bulk-grab inventory or resell. If that's your plan, this isn't for you
-and I'd rather you didn't.
-
-Mostly I built it for me. But it's public now, because the gap it fills isn't
-mine — anyone chasing this season is squinting at the same 77 seat maps, and
-most of them don't know the seats come back at all.
-
-The cinema code isn't the reusable part. The reusable part is that "no results"
-and "broken" look identical from the outside — so the thing has to be able to
-tell you which one it's having.
-
-Repo: <REPO_URL>
+Paste as plain text; LinkedIn renders no markdown. Keep the blank lines.
 
 ---
 
-## Alternate hook A — numbers first
+## Draft
 
-> 123 automated checks. 91 of them found absolutely nothing.
->
-> This is a success story.
+I've been using some time between roles to learn agentic development properly —
+not the demos, the actual thing. What breaks, what you have to design around,
+where it genuinely saves you and where it quietly costs you.
 
-Then straight into "The Odyssey is screening in IMAX 70mm…". Front-loads the
-counterintuitive line, which tends to survive the feed's truncation better.
+So naturally I built a monitoring system to buy two cinema tickets.
 
-## Alternate hook B — flattest possible
+The Odyssey is screening in IMAX 70mm in Melbourne. 459 seats, gone, session
+after session, a month deep into the schedule.
 
-> My seat-availability monitor has a dead-man's switch, a schema-drift detector
-> and an hourly alert-deduplication policy.
->
-> It monitors cinema tickets.
+Here's what I didn't know: seats come back. Returns, expired holds, failed
+payments — continuously, invisibly, at no particular time of day. There is no
+waitlist and no notification of any kind. In four days it found 43 of them. Most
+lasted under an hour.
 
-Strongest deadpan, weakest context — works if your audience already knows you
-build things, less so if the post is reaching strangers.
+A few other things that turned up:
+
+— The site's own sold-out flag is wrong on 34 of the 77 sessions.
+— The back half of the cinema never released a single seat. Not one.
+— "No results" and "broken" produce identical output, which turns out to be the
+actual engineering problem.
+
+It watches and sends me a link. A human does the buying.
+
+Write-up: https://ryzzuh.github.io/argos/
+Code: https://github.com/ryzzuh/argos
 
 ---
+
+**≈200 words.** The hook is the first two lines — "learning agentic development"
+into "so naturally I built a monitoring system to buy two cinema tickets" — which
+is the whole post in miniature and survives the feed's "see more" fold.
 
 ## Image
 
-Posts carrying one image travel materially further. Use a dark-mode screenshot of
-the report page showing a live hit — the green "2 seats free right now" verdict
-block with the seat labels and session time visible.
+Attach `docs/seat-map.jpg` — the near-solid grey seat map with the single blue
+seat. It carries the argument without a caption, and it is the reason to stop
+scrolling.
 
-`docs/index.html` renders it. If the current sweep is empty, regenerate from a
-snapshot that had a hit:
+## Notes
 
-```bash
-uv run python -c "
-from argos import store
-for s in store.latest_snapshots(40):
-    if s['bookable_total']: print(s['id'], s['taken_at'], s['bookable_total'])"
-```
-
-Crop to the header and verdict block. Don't include the full session table — it's
-unreadable at feed size.
-
-## Claims to keep accurate
-
-Every factual claim below was verified before drafting, because the post names a
-real business:
-
-- **34 of 77 sessions report `isSoldOut: false`** while having nothing bookable —
-  measured across the sweep history, not estimated.
-- **Screen 1 has exactly 4 wheelchair and 2 companion seats**, from the seat
-  layout endpoint. These are *reserved*, not unsold — a different mechanism from
-  a front-row seat nobody has bought yet. Never group the two under language like
-  "seats nobody wanted": it is both offensive and factually wrong, and the real
-  observation is that the site renders two unrelated categories identically.
-- **42 distinct bookable seats found over four days; 28 in rows A-B, none past
-  row F.** Straight from the `free_seats` table, deduplicated by seat id.
-- **Returns and expired holds do go back on sale**, which is the finding that
-  started the whole thing and is not communicated anywhere in the booking flow.
-- **The listing shows times only** — no seat counts, no filters. Verified on the
-  film page.
-- **"Add to watchlist" saves the film, not seat availability.** The page carries
-  no "notify", "alert", "remind" or "waitlist" language anywhere.
-
-Not claimed, because it could not be verified: anything about filtering *inside*
-the seat picker, which sits behind sign-in and was not inspected.
-
-## Two things the post must not do
-
-- **Overclaim reusability.** It monitors one film at one cinema. The README is
-  explicit about that and the post should not undo it.
-- **Leave the scalping question hanging.** This film is a heavy reseller target —
-  IMAX's own page warns about it — so a public tool watching a sold-out season
-  can be misread by anyone skimming. The draft answers it twice, deliberately:
-  once as a fact ("it doesn't book anything") and once as a position ("I don't
-  condone or support..."). The fact alone reads as a technical footnote; the
-  position alone reads as boilerplate. Both, and it lands.
-
-The tone note: the disclaimer is placed *after* the punchline about forty
-minutes, not before it. A caveat that opens a paragraph kills the deadpan; one
-that follows a joke reads as the author being straight with you.
+- **Don't restate the article.** The three findings are bait, not a summary. The
+  rate limits, the Cloudflare finding and the failure-design section are all
+  reasons to click through, and none of them belong here.
+- **The "a human does the buying" line stays.** It is a scraper pointed at a
+  ticketing site for a film with a known reseller problem; the boundary is worth
+  stating even in 200 words. The longer position is in the article.
+- **Figures drift.** Re-run `uv run python -m argos.stats` before posting and
+  correct the numbers if the monitor has been running.

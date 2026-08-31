@@ -275,6 +275,22 @@ to leaving the page open and refreshing it — which is what it replaces.
 Credentials are read at runtime from environment variables (or, on the author's
 machine, Claude Code's Telegram channel config) and never enter this repo.
 
+## The write-up
+
+`docs/` doubles as a GitHub Pages site:
+
+| Page | What it is |
+|---|---|
+| `docs/index.html` | the write-up — findings, seat statistics, how it was built |
+| `docs/report.html` | the live availability report, regenerated every full sweep |
+
+To publish it: **Settings → Pages → Source: Deploy from a branch → `main` /
+`docs`**. It appears at `https://<you>.github.io/argos/` within a minute or two.
+
+Note that Pages is only as fresh as your last push — `report.html` is rewritten
+locally on every full sweep, so commit and push it if you want the published
+version to keep up.
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE).

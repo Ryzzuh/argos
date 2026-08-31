@@ -49,7 +49,9 @@ def _source_label() -> str:
 SOURCE = _source_label()
 
 REPORT_MD = ROOT / "REPORT.md"
-REPORT_HTML = DOCS / "index.html"
+# docs/index.html is the write-up and the GitHub Pages landing page;
+# the live report is generated alongside it.
+REPORT_HTML = DOCS / "report.html"
 
 FILM_ID = os.environ.get("IMAX_FILM_ID", "HO00000547")
 FILM_SLUG = "THE-ODYSSEY-IMAX-70MM-PRESENTATION"

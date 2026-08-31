@@ -1,11 +1,13 @@
 <meta charset="utf-8">
-<title>Odyssey 70mm Seat Watch</title>
+<title>The Sold-Out Seat Problem</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="What I learned building a seat monitor for a sold-out IMAX 70mm season: the flag that lies, the seats that come back, and the one impossible seat in the middle of the room.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap">
 <style>
 :root{
-  --ground:#eceef1; --panel:#f7f8fa;
+  --ground:#eceef1; --panel:#f7f8fa; --panel-2:#e4e7ec;
   --ink:#16191f; --ink-2:#4a5058; --ink-3:#787f89;
   --rule:#d3d7de; --amber:#a8641a;
   --good:#1f7a4d; --good-soft:#dcefe4;
@@ -13,7 +15,7 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --ground:#0e1116; --panel:#171b22;
+    --ground:#0e1116; --panel:#171b22; --panel-2:#202631;
     --ink:#e9ecf1; --ink-2:#a3abb8; --ink-3:#727b89;
     --rule:#2a313c; --amber:#e9a94f;
     --good:#5fce97; --good-soft:#14301f;
@@ -21,113 +23,262 @@
   }
 }
 :root[data-theme="dark"]{
-  --ground:#0e1116; --panel:#171b22;
+  --ground:#0e1116; --panel:#171b22; --panel-2:#202631;
   --ink:#e9ecf1; --ink-2:#a3abb8; --ink-3:#727b89;
   --rule:#2a313c; --amber:#e9a94f;
   --good:#5fce97; --good-soft:#14301f;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
-body{
-  margin:0; background:var(--ground); color:var(--ink);
+body{margin:0; background:var(--ground); color:var(--ink);
   font-family:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
-  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
-}
-.wrap{max-width:1000px; margin:0 auto; padding:32px 24px 72px;
-      display:flex; flex-direction:column; gap:34px}
-h1,h2{font-family:"Archivo",ui-sans-serif,system-ui,sans-serif; text-wrap:balance;
-      margin:0; letter-spacing:-.015em}
-h1{font-size:clamp(27px,4.2vw,41px); font-weight:700; line-height:1.08}
-h2{font-size:19px; font-weight:600; letter-spacing:0}
-p{margin:0}
+  font-size:17px; line-height:1.68; -webkit-font-smoothing:antialiased}
+.wrap{max-width:720px; margin:0 auto; padding:44px 24px 90px;
+  display:flex; flex-direction:column; gap:34px}
+h1,h2{font-family:"Archivo",ui-sans-serif,system-ui,sans-serif; margin:0;
+  text-wrap:balance; letter-spacing:-.018em}
+h1{font-size:clamp(31px,5.6vw,47px); font-weight:700; line-height:1.05}
+h2{font-size:22px; font-weight:600; letter-spacing:-.01em; margin-top:12px}
+p{margin:0; max-width:66ch}
 a{color:var(--amber)}
-a:focus-visible,.btn:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
-.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
-.eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
-  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3)}
-/* 70mm sprocket rule - the one flourish, and it is the subject itself */
-.sprocket{height:12px; border-radius:2px; opacity:.75; background:
-  repeating-linear-gradient(90deg,var(--rule) 0 7px,transparent 7px 20px)}
-header{display:flex; flex-direction:column; gap:13px}
-.sub{color:var(--ink-2); font-size:14px}
-.verdict{background:var(--panel); border:1px solid var(--rule); border-radius:10px;
-  padding:22px 24px; box-shadow:var(--shadow);
-  display:flex; flex-direction:column; gap:13px}
-.verdict.hit{border-color:var(--good); background:var(--good-soft)}
-.verdict h2{font-size:22px}
-.hitlist{display:flex; flex-direction:column; gap:10px; margin:0; padding:0; list-style:none}
-.hitlist li{display:flex; flex-wrap:wrap; align-items:center; gap:12px;
-  padding:12px 14px; background:var(--panel); border:1px solid var(--rule);
-  border-radius:8px}
-.hitlist .when{font-weight:600}
-.hitlist .seats{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--ink-2)}
-.btn{margin-left:auto; font-size:13px; font-weight:600; text-decoration:none;
-  color:var(--panel); background:var(--amber); padding:6px 15px; border-radius:6px}
-.btn:hover{filter:brightness(1.1)}
-.tiles{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(148px,1fr))}
-.tile{background:var(--panel); border:1px solid var(--rule); border-radius:10px;
-  padding:16px 18px; display:flex; flex-direction:column; gap:5px}
-.tile .n{font-family:"Archivo",sans-serif; font-size:30px; font-weight:700;
+a:focus-visible{outline:2px solid var(--amber); outline-offset:3px}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-3)}
+.sprocket{height:12px; border-radius:2px; opacity:.75;
+  background:repeating-linear-gradient(90deg,var(--rule) 0 7px,transparent 7px 20px)}
+header{display:flex; flex-direction:column; gap:15px}
+.standfirst{font-size:19px; color:var(--ink-2); line-height:1.6}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-3)}
+section{display:flex; flex-direction:column; gap:17px}
+.lede::first-letter{font-family:"Archivo",serif; font-weight:700; font-size:3.1em;
+  float:left; line-height:.86; padding:3px 9px 0 0; color:var(--amber)}
+figure{margin:0; display:flex; flex-direction:column; gap:11px}
+figure img{width:100%; max-width:340px; height:auto; border-radius:10px;
+  border:1px solid var(--rule); box-shadow:var(--shadow); align-self:center}
+figcaption{font-size:14px; color:var(--ink-3); line-height:1.55; max-width:60ch;
+  align-self:center; text-align:center}
+figcaption strong{color:var(--ink-2)}
+.pull{border-left:3px solid var(--amber); padding:4px 0 4px 18px;
+  font-size:19px; line-height:1.55; color:var(--ink); max-width:60ch}
+.card{background:var(--panel); border:1px solid var(--rule); border-radius:10px;
+  padding:22px 24px; box-shadow:var(--shadow); display:flex;
+  flex-direction:column; gap:18px}
+.bars{display:flex; flex-direction:column; gap:7px;
+  font-family:"IBM Plex Mono",monospace; font-size:13px}
+.bar{display:grid; grid-template-columns:24px 1fr 30px; align-items:center; gap:10px}
+.bar .track{display:block; height:15px; background:var(--panel-2);
+  border-radius:3px; overflow:hidden}
+.bar .fill{display:block; height:100%; min-width:2px; background:var(--amber);
+  border-radius:3px}
+.bar .fill.zero{background:var(--rule); width:2px}
+.bar .n{text-align:right; font-variant-numeric:tabular-nums; color:var(--ink-2)}
+.bar.empty .lab{color:var(--ink-3)}
+.caption{font-size:13.5px; color:var(--ink-3); font-style:italic; max-width:60ch}
+.split{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.stat{background:var(--panel-2); border-radius:8px; padding:14px 16px;
+  display:flex; flex-direction:column; gap:3px}
+.stat .n{font-family:"Archivo",sans-serif; font-size:27px; font-weight:700;
   font-variant-numeric:tabular-nums; line-height:1}
-.tile .n.good{color:var(--good)}
-.tile .l{font-size:12px; color:var(--ink-3)}
-section{display:flex; flex-direction:column; gap:14px}
-.note{color:var(--ink-2); font-size:14px; max-width:68ch}
-.scroll{overflow-x:auto; border:1px solid var(--rule); border-radius:10px;
+.stat .n.good{color:var(--good)}
+.stat .l{font-size:12px; color:var(--ink-3)}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+.scroll{overflow-x:auto; border:1px solid var(--rule); border-radius:9px;
   background:var(--panel)}
-table{border-collapse:collapse; width:100%; font-size:14px}
-th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--rule);
-  white-space:nowrap}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--rule)}
 th{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.12em;
-  text-transform:uppercase; color:var(--ink-3); font-weight:500;
-  position:sticky; top:0; background:var(--panel)}
-th.num,td.num{text-align:right}
-td.num{font-variant-numeric:tabular-nums; font-family:"IBM Plex Mono",monospace;
-  font-size:13px; color:var(--ink-2)}
+  text-transform:uppercase; color:var(--ink-3); font-weight:500}
 tbody tr:last-child td{border-bottom:none}
-tr.open td{background:var(--good-soft)}
-tr.past td{opacity:.45}
-.chip{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:11px;
-  padding:2px 9px; border-radius:999px; border:1px solid var(--rule); color:var(--ink-3)}
-.chip.free{background:var(--good-soft); border-color:var(--good); color:var(--good);
-  font-weight:600}
-td a{font-size:13px}
-footer{color:var(--ink-3); font-size:13px; display:flex; flex-direction:column; gap:10px}
-footer code{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-2)}
-@media (max-width:560px){.wrap{padding:22px 14px 56px} .btn{margin-left:0}}
+td code{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-2)}
+pre{margin:0; overflow-x:auto; background:var(--panel-2); border:1px solid var(--rule);
+  border-radius:8px; padding:13px 15px; font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px; line-height:1.55; color:var(--ink-2)}
+.cta{display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding-top:4px}
+.btn{font-size:14.5px; font-weight:600; text-decoration:none; color:var(--panel);
+  background:var(--amber); padding:9px 18px; border-radius:7px}
+.btn.ghost{background:transparent; color:var(--amber);
+  border:1px solid var(--rule); padding:8px 17px}
+.btn:hover{filter:brightness(1.08)}
+footer{color:var(--ink-3); font-size:14px; display:flex; flex-direction:column;
+  gap:12px; padding-top:8px}
+@media (max-width:560px){.wrap{padding:28px 16px 60px} body{font-size:16px}}
 </style>
+
 <div class="wrap">
   <header>
-    <span class="eyebrow">IMAX Melbourne · Screen 1 · 70mm film</span>
-    <h1>The Odyssey - IMAX 70mm Presentation</h1>
+    <span class="eyebrow">Argos · IMAX Melbourne · 70mm</span>
+    <h1>The sold-out seat problem</h1>
     <div class="sprocket"></div>
-    <p class="sub">Last checked Mon 31 Aug, 3:34AM · snapshot #100 ·
-      66 sessions counted from the live seat map, not the site's sold-out flag.</p>
+    <p class="standfirst">What I learned pointing a monitor at a completely sold-out
+      cinema season: a flag that lies, seats that quietly come back, and one
+      impossible seat in the middle of the room.</p>
+    <p class="byline">Rhys · August 2026 · ~6 min read</p>
   </header>
 
-  <div class="verdict"><h2>No general-admission seats free</h2><p class="note">All 66 sessions are sold out. The only seats the booking site shows as available are the wheelchair and companion spaces in row M, which are not ordinary tickets — which is why the seat map looks empty even on sessions the site says are not sold out.</p></div>
-
-  <div class="tiles"><div class="tile"><span class="n ">0</span><span class="l">seats free to book</span></div><div class="tile"><span class="n ">66</span><span class="l">sessions tracked</span></div><div class="tile"><span class="n ">76</span><span class="l">accessible spaces</span></div><div class="tile"><span class="n ">116</span><span class="l">held by the venue</span></div></div>
+  <section>
+    <p class="lede">The Odyssey is screening in IMAX 70mm in Melbourne, and it is
+      sold out. Not "limited availability" sold out — 459 of 459 seats gone, on
+      session after session, a month deep into the schedule.</p>
+    <p>I wanted two tickets. So I did what everyone does: opened the booking page,
+      clicked through the dates, and stared at seat maps that were entirely grey.
+      Then did it again the next day. Then built something to do it for me, which
+      is where this gets interesting — because the thing I built kept finding seats
+      that I had been told did not exist.</p>
+  </section>
 
   <section>
-    <h2>Every session</h2>
-    <p class="note">Accessible spaces are listed apart because they are nearly always free
-      and are not ordinary tickets. House seats are held back by the venue and are the
-      most likely source of a late release.</p>
-    <div class="scroll"><table>
-      <thead><tr><th>Date</th><th>Time</th><th>Free to book</th>
-        <th class="num">Access.</th><th class="num">House</th><th class="num">Sold</th>
-        <th></th></tr></thead>
-      <tbody><tr class=""><td>Mon 31 Aug</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23057/seats">book</a></td></tr><tr class=""><td>Mon 31 Aug</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">2</td><td class="num">4</td><td class="num">453</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23058/seats">book</a></td></tr><tr class=""><td>Mon 31 Aug</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23059/seats">book</a></td></tr><tr class=""><td>Tue 1 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23060/seats">book</a></td></tr><tr class=""><td>Tue 1 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23061/seats">book</a></td></tr><tr class=""><td>Tue 1 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">1</td><td class="num">4</td><td class="num">454</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23062/seats">book</a></td></tr><tr class=""><td>Wed 2 Sep</td><td class="mono">4:10pm</td><td><span class="chip">sold out</span></td><td class="num">2</td><td class="num">4</td><td class="num">453</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23063/seats">book</a></td></tr><tr class=""><td>Wed 2 Sep</td><td class="mono">7:45pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23064/seats">book</a></td></tr><tr class=""><td>Thu 3 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">1</td><td class="num">4</td><td class="num">454</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23065/seats">book</a></td></tr><tr class=""><td>Thu 3 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23066/seats">book</a></td></tr><tr class=""><td>Fri 4 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">4</td><td class="num">4</td><td class="num">451</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23068/seats">book</a></td></tr><tr class=""><td>Fri 4 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23069/seats">book</a></td></tr><tr class=""><td>Fri 4 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">5</td><td class="num">4</td><td class="num">450</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23070/seats">book</a></td></tr><tr class=""><td>Sat 5 Sep</td><td class="mono">10:15am</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23071/seats">book</a></td></tr><tr class=""><td>Sat 5 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23072/seats">book</a></td></tr><tr class=""><td>Sat 5 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23073/seats">book</a></td></tr><tr class=""><td>Sat 5 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23074/seats">book</a></td></tr><tr class=""><td>Sun 6 Sep</td><td class="mono">10:15am</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23075/seats">book</a></td></tr><tr class=""><td>Sun 6 Sep</td><td class="mono">4:30pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23076/seats">book</a></td></tr><tr class=""><td>Sun 6 Sep</td><td class="mono">8:10pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23077/seats">book</a></td></tr><tr class=""><td>Mon 7 Sep</td><td class="mono">9:25pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23078/seats">book</a></td></tr><tr class=""><td>Tue 8 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">2</td><td class="num">4</td><td class="num">453</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23079/seats">book</a></td></tr><tr class=""><td>Tue 8 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">2</td><td class="num">454</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23109/seats">book</a></td></tr><tr class=""><td>Tue 8 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23080/seats">book</a></td></tr><tr class=""><td>Wed 9 Sep</td><td class="mono">5:00pm</td><td><span class="chip">sold out</span></td><td class="num">1</td><td class="num">4</td><td class="num">454</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23081/seats">book</a></td></tr><tr class=""><td>Thu 10 Sep</td><td class="mono">3:00pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23097/seats">book</a></td></tr><tr class=""><td>Thu 10 Sep</td><td class="mono">9:15pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23098/seats">book</a></td></tr><tr class=""><td>Fri 11 Sep</td><td class="mono">3:00pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23099/seats">book</a></td></tr><tr class=""><td>Fri 11 Sep</td><td class="mono">9:15pm</td><td><span class="chip">sold out</span></td><td class="num">2</td><td class="num">4</td><td class="num">453</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23100/seats">book</a></td></tr><tr class=""><td>Sat 12 Sep</td><td class="mono">10:45am</td><td><span class="chip">sold out</span></td><td class="num">2</td><td class="num">4</td><td class="num">453</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23101/seats">book</a></td></tr><tr class=""><td>Sat 12 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23102/seats">book</a></td></tr><tr class=""><td>Sun 13 Sep</td><td class="mono">10:45am</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23103/seats">book</a></td></tr><tr class=""><td>Sun 13 Sep</td><td class="mono">5:10pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">2</td><td class="num">454</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23104/seats">book</a></td></tr><tr class=""><td>Sun 13 Sep</td><td class="mono">8:45pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23105/seats">book</a></td></tr><tr class=""><td>Mon 14 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23106/seats">book</a></td></tr><tr class=""><td>Mon 14 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23107/seats">book</a></td></tr><tr class=""><td>Mon 14 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23108/seats">book</a></td></tr><tr class=""><td>Wed 16 Sep</td><td class="mono">3:00pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23095/seats">book</a></td></tr><tr class=""><td>Wed 16 Sep</td><td class="mono">9:15pm</td><td><span class="chip">sold out</span></td><td class="num">1</td><td class="num">4</td><td class="num">454</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23096/seats">book</a></td></tr><tr class=""><td>Fri 18 Sep</td><td class="mono">11:30am</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23083/seats">book</a></td></tr><tr class=""><td>Fri 18 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23084/seats">book</a></td></tr><tr class=""><td>Sat 19 Sep</td><td class="mono">3:45pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23085/seats">book</a></td></tr><tr class=""><td>Sat 19 Sep</td><td class="mono">9:35pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23086/seats">book</a></td></tr><tr class=""><td>Sun 20 Sep</td><td class="mono">12:20pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23087/seats">book</a></td></tr><tr class=""><td>Sun 20 Sep</td><td class="mono">9:35pm</td><td><span class="chip">sold out</span></td><td class="num">2</td><td class="num">4</td><td class="num">453</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23088/seats">book</a></td></tr><tr class=""><td>Mon 21 Sep</td><td class="mono">12:20pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23089/seats">book</a></td></tr><tr class=""><td>Mon 21 Sep</td><td class="mono">9:35pm</td><td><span class="chip">sold out</span></td><td class="num">1</td><td class="num">4</td><td class="num">454</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23090/seats">book</a></td></tr><tr class=""><td>Tue 22 Sep</td><td class="mono">3:45pm</td><td><span class="chip">sold out</span></td><td class="num">2</td><td class="num">4</td><td class="num">453</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23091/seats">book</a></td></tr><tr class=""><td>Tue 22 Sep</td><td class="mono">9:35pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23092/seats">book</a></td></tr><tr class=""><td>Wed 23 Sep</td><td class="mono">3:45pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23093/seats">book</a></td></tr><tr class=""><td>Wed 23 Sep</td><td class="mono">9:35pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23094/seats">book</a></td></tr><tr class=""><td>Thu 24 Sep</td><td class="mono">5:15pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23168/seats">book</a></td></tr><tr class=""><td>Thu 24 Sep</td><td class="mono">8:50pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23169/seats">book</a></td></tr><tr class=""><td>Fri 25 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23170/seats">book</a></td></tr><tr class=""><td>Fri 25 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23171/seats">book</a></td></tr><tr class=""><td>Fri 25 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23172/seats">book</a></td></tr><tr class=""><td>Sat 26 Sep</td><td class="mono">10:15am</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23173/seats">book</a></td></tr><tr class=""><td>Sat 26 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23174/seats">book</a></td></tr><tr class=""><td>Sat 26 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23175/seats">book</a></td></tr><tr class=""><td>Sat 26 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23176/seats">book</a></td></tr><tr class=""><td>Sun 27 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">3</td><td class="num">4</td><td class="num">452</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23177/seats">book</a></td></tr><tr class=""><td>Sun 27 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23178/seats">book</a></td></tr><tr class=""><td>Sun 27 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23179/seats">book</a></td></tr><tr class=""><td>Mon 28 Sep</td><td class="mono">1:50pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23180/seats">book</a></td></tr><tr class=""><td>Mon 28 Sep</td><td class="mono">5:25pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23181/seats">book</a></td></tr><tr class=""><td>Mon 28 Sep</td><td class="mono">9:00pm</td><td><span class="chip">sold out</span></td><td class="num">0</td><td class="num">0</td><td class="num">459</td><td><a href="https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23182/seats">book</a></td></tr></tbody>
-    </table></div>
+    <h2>Seats come back, and nobody tells you</h2>
+    <p>This was the part I had wrong. I assumed a sold-out session was simply sold
+      out — that if somebody couldn't make it, their ticket quietly evaporated into
+      the void.</p>
+    <p>It doesn't. Returns happen. Holds expire and the seats go back on sale.
+      Payment attempts fail and inventory returns to the pool. It happens
+      continuously, at unpredictable times, and it is completely invisible unless
+      you happen to be looking at that exact seat map in that exact minute.</p>
+    <p class="pull">There is no waitlist, no "email me if something opens up", no
+      notification of any kind. There is a watchlist — and it saves the film, not
+      the seats.</p>
+    <p>Over four days of monitoring, 43 distinct general-admission seats became
+      available across the season. Every one of them was invisible to anyone not
+      refreshing at that moment. Most lasted under an hour.</p>
+  </section>
+
+  <section>
+    <h2>The flag that lies</h2>
+    <p>The booking site runs on Vista's Movie XChange platform, and every session
+      carries an <code>isSoldOut</code> boolean. It is wrong on <strong>34 of the 77
+      sessions</strong> — reporting <code>false</code> while nothing bookable exists
+      on them.</p>
+    <p>That is not a rounding error, it is the difference between "there might be a
+      ticket here" and "there is not". If you trust the flag, you open dozens of
+      seat maps for nothing. Everything my monitor reports is counted from the seat
+      map itself and split by seat type, because the summary field cannot be
+      trusted.</p>
+  </section>
+
+  <section>
+    <h2>Two different things wearing the same colour</h2>
+    <figure>
+      <img src="seat-map.jpg" alt="IMAX Melbourne mobile seat map: a near-solid
+        field of grey unavailable seats, with a single blue selected seat, E23,
+        near the centre of the auditorium.">
+      <figcaption><strong>An impossible seat in a sea of reservations.</strong>
+        E23 — the one blue square. Row E, dead centre. Argos found it on a Thursday
+        afternoon session; it was one of only nine seats in four days that wasn't
+        jammed against the edge of a row.</figcaption>
+    </figure>
+    <p>Look at the legend on that screenshot: <em>Your selection</em>,
+      <em>Unavailable</em>, <em>Available</em>. Three states, one white swatch. But
+      "available" is quietly doing two completely different jobs.</p>
+    <p>Screen 1 has six accessibility seats — four wheelchair spaces and two
+      companion seats. They show as available on nearly every session, because they
+      are <em>reserved</em>, held for people who need them. They are not general
+      admission and they were never mine to take.</p>
+    <p>The rest are simply seats that haven't sold. Completely different mechanism,
+      identical rendering. So a session with "availability" often means six
+      accessibility spaces and nothing else — which is exactly why a seat map can
+      look empty while the site insists the session is open.</p>
+    <p>My monitor treats them separately, and only alerts on the second kind.
+      Alerting on the first would fire every single run and mean nothing.</p>
+  </section>
+
+  <section>
+    <h2>Where the seats actually were</h2>
+    <p>Once you're recording every seat rather than eyeballing them, the shape of a
+      sold-out house becomes obvious.</p>
+    <div class="card">
+      <div>
+        <div class="bars">
+          <div class="bar"><span class="lab">A</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="n">21</span></div>
+          <div class="bar"><span class="lab">B</span><span class="track"><span class="fill" style="width:38%"></span></span><span class="n">8</span></div>
+          <div class="bar"><span class="lab">C</span><span class="track"><span class="fill" style="width:14%"></span></span><span class="n">3</span></div>
+          <div class="bar"><span class="lab">D</span><span class="track"><span class="fill" style="width:14%"></span></span><span class="n">3</span></div>
+          <div class="bar"><span class="lab">E</span><span class="track"><span class="fill" style="width:33%"></span></span><span class="n">7</span></div>
+          <div class="bar"><span class="lab">F</span><span class="track"><span class="fill" style="width:5%"></span></span><span class="n">1</span></div>
+          <div class="bar empty"><span class="lab">G</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">H</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">J</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">K</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">L</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">M</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+        </div>
+        <p class="caption" style="margin-top:11px">Seats found free, by row. A is
+          closest to the screen; M is the back wall.</p>
+      </div>
+      <div class="split">
+        <div class="stat"><span class="n">34</span><span class="l">at the edges of a row (79%)</span></div>
+        <div class="stat"><span class="n">9</span><span class="l">in the middle third (21%)</span></div>
+      </div>
+    </div>
+    <p>Rows G through M — the entire back half of the auditorium — released
+      <strong>nothing at all</strong> in four days. Not one seat. And of what did
+      come free, four in five sat at the edge of a row.</p>
+    <p>Which reframes the screenshot above. E23 wasn't just a seat. It was one of
+      nine centre-ish seats in the whole period, in a room where the good seats
+      went months ago and never came back.</p>
+  </section>
+
+  <section>
+    <h2>Building the thing</h2>
+    <p>The booking site is a Next.js front end over a JSON API. Seat availability
+      turns out to be a plain authenticated <code>GET</code> — no sign-in, no order,
+      no guest checkout — returning every seat with a status of
+      <code>Available</code>, <code>Sold</code> or <code>House</code>.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Problem</th><th>What it actually took</th></tr></thead>
+        <tbody>
+          <tr><td>Auth</td><td>A 12-hour anonymous token embedded in every page. Cloudflare fingerprints TLS, so no HTTP client can fetch that page — a real browser mints it once, then plain HTTP does the rest.</td></tr>
+          <tr><td>Rate limits</td><td>Measured, not guessed: 41 requests per rolling minute, then HTTP 429 for ~45 seconds. Three concurrent requests trip a separate burst rule instantly.</td></tr>
+          <tr><td>Seat meaning</td><td>Join availability against the seat layout to recover row, number and type. Without it a seat id is just <code>1_5_23</code>.</td></tr>
+          <tr><td>Running it</td><td>Every 10 minutes on a laptop. Cloud runners get served a Cloudflare challenge — it's IP reputation, so no VPS fixes it.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>The bit that actually transfers</h2>
+    <p>Here is the design problem that made this more interesting than a scraper.</p>
+    <p class="pull">"No seats available" is the correct answer almost all the time.
+      So a completely broken monitor and a perfectly working one produce identical
+      output.</p>
+    <p>91 of the first 123 sweeps found nothing. If the token had expired, or the
+      API had changed shape, or the seat ids had stopped matching the layout, I
+      would have carried on receiving exactly the silence I expected — right up
+      until I noticed the film had finished its run.</p>
+    <p>So the monitor is built to distinguish the two. It alerts on schema drift —
+      an unfamiliar seat type, a layout that changed size, ids that no longer join.
+      It alerts if too much of the schedule goes unchecked. A separate watchdog
+      process alerts if the monitor stops running at all, because the failure it
+      catches is the main process being dead. A single failed request, though, is
+      logged and never alerted: cry wolf on the channel that also carries the seat
+      alerts and you have taught yourself to ignore it.</p>
+    <p>That is the part worth stealing. Not the cinema code — the habit of asking
+      what your monitoring looks like when it's broken, and making sure that isn't
+      the same thing as everything being fine.</p>
+  </section>
+
+  <section>
+    <h2>What it does and doesn't do</h2>
+    <p>It watches. When a genuinely bookable seat appears it sends a Telegram
+      message with the seat number and a direct link, and a human takes it from
+      there. It does not select seats, create orders, hold inventory or buy
+      anything.</p>
+    <p>It makes read-only requests, paced well below the limit I measured, for one
+      person after two tickets. I don't condone or support using it — or anything
+      like it — to bulk-grab inventory or resell. That is the opposite of the point.</p>
+    <div class="cta">
+      <a class="btn" href="https://github.com/ryzzuh/argos">Source on GitHub</a>
+      <a class="btn ghost" href="report.html">Live availability report</a>
+    </div>
   </section>
 
   <footer>
     <div class="sprocket"></div>
-    <p>Read from Vista Movie XChange OCAPI with plain authenticated GETs — no sign-in, no
-      order, no seat holds. The film is <code>HO00000547</code>; the slug in the website
-      URL is decorative, which is how <code>HO00000545</code> (a different film entirely)
-      ends up showing an empty date picker.</p>
-    
+    <p>Argos is named for Odysseus's dog, who waited twenty years and recognised his
+      master instantly — and for Argus Panoptes, the hundred-eyed watchman who never
+      closed every eye at once. Hermes eventually killed Panoptes by lulling him to
+      sleep, which is precisely what happens to this one when the laptop shuts.</p>
+    <p>Figures from 134 sweeps between 28 and 31 August 2026.</p>
   </footer>
 </div>
