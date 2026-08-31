@@ -6,3 +6,6 @@ __pycache__/
 data/
 
 # state/ is intentionally NOT ignored: it is the cloud runner's diff baseline.
+
+# Live monitoring state: recreated on first run, personal to each install.
+state/
