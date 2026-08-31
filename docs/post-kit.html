@@ -1,0 +1,277 @@
+<meta charset="utf-8">
+<title>Argos Post Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root{
+  --ground:#eceef1; --panel:#f7f8fa; --panel-2:#e4e7ec;
+  --ink:#16191f; --ink-2:#4a5058; --ink-3:#787f89;
+  --rule:#d3d7de; --amber:#a8641a;
+  --good:#1f7a4d; --good-soft:#dcefe4;
+  --shadow:0 1px 2px rgba(20,26,38,.07),0 8px 24px rgba(20,26,38,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0e1116; --panel:#171b22; --panel-2:#202631;
+    --ink:#e9ecf1; --ink-2:#a3abb8; --ink-3:#727b89;
+    --rule:#2a313c; --amber:#e9a94f;
+    --good:#5fce97; --good-soft:#14301f;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0e1116; --panel:#171b22; --panel-2:#202631;
+  --ink:#e9ecf1; --ink-2:#a3abb8; --ink-3:#727b89;
+  --rule:#2a313c; --amber:#e9a94f;
+  --good:#5fce97; --good-soft:#14301f;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased}
+.wrap{max-width:860px; margin:0 auto; padding:32px 24px 80px;
+  display:flex; flex-direction:column; gap:38px}
+h1,h2,h3{font-family:"Archivo",ui-sans-serif,system-ui,sans-serif; margin:0;
+  text-wrap:balance; letter-spacing:-.015em}
+h1{font-size:clamp(27px,4.2vw,40px); font-weight:700; line-height:1.08}
+h2{font-size:19px; font-weight:600; letter-spacing:0}
+h3{font-size:14px; font-weight:600; color:var(--ink-2)}
+p{margin:0}
+a{color:var(--amber)}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-3)}
+.sprocket{height:12px; border-radius:2px; opacity:.75;
+  background:repeating-linear-gradient(90deg,var(--rule) 0 7px,transparent 7px 20px)}
+header{display:flex; flex-direction:column; gap:13px}
+.sub{color:var(--ink-2); font-size:14px}
+section{display:flex; flex-direction:column; gap:14px}
+.note{color:var(--ink-2); font-size:14px; max-width:68ch}
+.card{background:var(--panel); border:1px solid var(--rule); border-radius:10px;
+  padding:22px 24px; box-shadow:var(--shadow)}
+
+/* the post itself */
+.post{display:flex; flex-direction:column; gap:15px; font-size:15.5px; line-height:1.62}
+.post p{max-width:64ch}
+.meta{display:flex; flex-wrap:wrap; gap:18px; font-family:"IBM Plex Mono",monospace;
+  font-size:12px; color:var(--ink-3); padding-top:6px; border-top:1px solid var(--rule)}
+.repo{font-family:"IBM Plex Mono",monospace; font-size:14px; color:var(--amber)}
+
+/* stats */
+.bars{display:flex; flex-direction:column; gap:7px; font-family:"IBM Plex Mono",monospace;
+  font-size:13px}
+.bar{display:grid; grid-template-columns:26px 1fr 34px; align-items:center; gap:10px}
+.bar .track{display:block; height:16px; background:var(--panel-2);
+  border-radius:3px; overflow:hidden}
+.bar .fill{display:block; height:100%; min-width:2px; background:var(--amber);
+  border-radius:3px}
+.bar .fill.zero{background:var(--rule); width:2px}
+.bar .n{text-align:right; font-variant-numeric:tabular-nums; color:var(--ink-2)}
+.bar.empty .lab{color:var(--ink-3)}
+.split{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.stat{background:var(--panel-2); border-radius:8px; padding:14px 16px;
+  display:flex; flex-direction:column; gap:3px}
+.stat .n{font-family:"Archivo",sans-serif; font-size:27px; font-weight:700;
+  font-variant-numeric:tabular-nums; line-height:1}
+.stat .l{font-size:12px; color:var(--ink-3)}
+.legend{font-size:12.5px; color:var(--ink-3); font-style:italic}
+
+/* faithful excerpt of the report page */
+.verdict{border:1px solid var(--good); background:var(--good-soft); border-radius:10px;
+  padding:18px 20px; display:flex; flex-direction:column; gap:11px}
+.verdict h3{font-family:"Archivo",sans-serif; font-size:19px; font-weight:700; color:var(--ink)}
+.hit{display:flex; flex-wrap:wrap; align-items:center; gap:11px; padding:10px 13px;
+  background:var(--panel); border:1px solid var(--rule); border-radius:8px; font-size:14px}
+.hit .when{font-weight:600}
+.hit .seats{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-2)}
+.hit .btn{margin-left:auto; font-size:12px; font-weight:600; color:var(--panel);
+  background:var(--amber); padding:5px 12px; border-radius:6px}
+.tiles{display:grid; gap:11px; grid-template-columns:repeat(auto-fit,minmax(128px,1fr))}
+.tile{background:var(--panel); border:1px solid var(--rule); border-radius:9px;
+  padding:13px 15px; display:flex; flex-direction:column; gap:4px}
+.tile .n{font-family:"Archivo",sans-serif; font-size:25px; font-weight:700;
+  font-variant-numeric:tabular-nums; line-height:1}
+.tile .n.good{color:var(--good)}
+.tile .l{font-size:11.5px; color:var(--ink-3)}
+
+/* screenshot slot */
+.slot{border:2px dashed var(--rule); border-radius:10px; padding:34px 24px;
+  text-align:center; color:var(--ink-3); font-size:14px;
+  display:flex; flex-direction:column; gap:8px; align-items:center}
+.slot code{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-2)}
+figure{margin:0; display:flex; flex-direction:column; gap:9px}
+figcaption{font-size:13px; color:var(--ink-3)}
+pre{margin:0; overflow-x:auto; background:var(--panel-2); border:1px solid var(--rule);
+  border-radius:8px; padding:13px 15px; font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px; line-height:1.5}
+ol{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:7px;
+  font-size:14px; color:var(--ink-2)}
+@media (max-width:560px){.wrap{padding:22px 14px 56px} .hit .btn{margin-left:0}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Argos · LinkedIn</span>
+    <h1>Post kit</h1>
+    <div class="sprocket"></div>
+    <p class="sub">Copy the post, drop in the two images, publish. Figures below are
+      from the live database as at 31 Aug and drift as the monitor keeps running —
+      re-run the stats command before you post if it has been a while.</p>
+  </header>
+
+  <section>
+    <h2>1 · The post</h2>
+    <p class="note">Paste as plain text. LinkedIn renders no markdown, so there is
+      no formatting to strip — but keep the blank lines between paragraphs, they
+      carry the readability in the feed.</p>
+    <div class="card post">
+      <p>I spent a weekend building a monitoring system with a rate limiter, a
+        dead-man's switch and a Telegram bot, so that I could buy two cinema
+        tickets.</p>
+      <p>In my defence, it was necessary.</p>
+      <p>Here's the thing I didn't know: seats come back. I'd assumed a sold-out
+        session was sold out — that if someone couldn't make it, their ticket
+        quietly evaporated. It doesn't. Returns and expired holds go back on sale
+        continuously. Nobody tells you when. There's no waitlist, no alert, no "let
+        me know if something frees up". There's a watchlist, and it saves the film,
+        not the seats.</p>
+      <p>The Odyssey is screening in IMAX 70mm in Melbourne and it's sold out —
+        except the site lists sessions as available anyway, and when you open one
+        the seat map looks empty.</p>
+      <p>It isn't quite empty, and that's the problem: two completely different
+        things show up as "available". Some are the six accessibility spaces —
+        reserved, not general admission, and not mine to take. The rest are simply
+        the seats that clear last. Of the 43 bookable seats this thing has caught in
+        four days, 29 were in the front two rows, 79% were at the edges of a row,
+        and not one came from the back half of the room.</p>
+      <p>The site draws every available seat in the same colour. Meanwhile the
+        booking API's own isSoldOut flag reports 34 of those 77 sessions as
+        perfectly fine.</p>
+      <p>The listing tells you none of it. Session times and nothing else — no seat
+        counts, no filter for row or seat type, no way to ask which sessions have
+        two seats together. Finding out means opening 77 seat maps and squinting.</p>
+      <p>So: ~2,000 lines of Python that ignores the flag, counts the actual seat
+        map by seat type, and messages me when a seat a human can actually book
+        appears.</p>
+      <p>It doesn't book anything. It sends me a link and I do the rest — which, on
+        current evidence, gives me about forty minutes to act.</p>
+      <p>134 sweeps so far. 92 of them found nothing. That ratio is the entire
+        argument for automating it.</p>
+      <p>To be clear about what this is: read-only, paced well under the rate limit,
+        one person buying two tickets. I don't condone or support using it — or
+        anything like it — to bulk-grab inventory or resell. If that's your plan,
+        this isn't for you and I'd rather you didn't.</p>
+      <p>Mostly I built it for me. But it's public now, because the gap it fills
+        isn't mine — anyone chasing this season is squinting at the same 77 seat
+        maps, and most of them don't know the seats come back at all.</p>
+      <p>The cinema code isn't the reusable part. The reusable part is that "no
+        results" and "broken" look identical from the outside — so the thing has to
+        be able to tell you which one it's having.</p>
+      <p class="repo">Repo: github.com/ryzzuh/argos</p>
+      <div class="meta">
+        <span>≈490 words</span><span>≈2,700 characters</span>
+        <span>limit 3,000</span><span>hook survives the "see more" fold</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · Where the seats actually were</h2>
+    <p class="note">Every distinct general-admission seat Argos found free over four
+      days of monitoring — 43 in total, across 134 sweeps of 77 sessions. Row A is
+      closest to the screen.</p>
+    <div class="card" style="display:flex;flex-direction:column;gap:20px">
+      <div>
+        <h3 style="margin-bottom:11px">Seats found, by row</h3>
+        <div class="bars">
+          <div class="bar"><span class="lab">A</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="n">21</span></div>
+          <div class="bar"><span class="lab">B</span><span class="track"><span class="fill" style="width:38%"></span></span><span class="n">8</span></div>
+          <div class="bar"><span class="lab">C</span><span class="track"><span class="fill" style="width:14%"></span></span><span class="n">3</span></div>
+          <div class="bar"><span class="lab">D</span><span class="track"><span class="fill" style="width:14%"></span></span><span class="n">3</span></div>
+          <div class="bar"><span class="lab">E</span><span class="track"><span class="fill" style="width:33%"></span></span><span class="n">7</span></div>
+          <div class="bar"><span class="lab">F</span><span class="track"><span class="fill" style="width:5%"></span></span><span class="n">1</span></div>
+          <div class="bar empty"><span class="lab">G</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">H</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">J</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">K</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">L</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+          <div class="bar empty"><span class="lab">M</span><span class="track"><span class="fill zero"></span></span><span class="n">0</span></div>
+        </div>
+        <p class="legend" style="margin-top:10px">Rows G to M — the back half of the
+          auditorium — never released a single seat in four days.</p>
+      </div>
+      <div>
+        <h3 style="margin-bottom:11px">Position within the row</h3>
+        <div class="split">
+          <div class="stat"><span class="n">34</span><span class="l">at the edges — outer thirds (79%)</span></div>
+          <div class="stat"><span class="n">9</span><span class="l">in the middle third (21%)</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Regenerate these before posting:</p>
+    <pre>cd ~/Projects/argos &amp;&amp; uv run python -m argos.stats</pre>
+  </section>
+
+  <section>
+    <h2>3 · What the tool shows you</h2>
+    <p class="note">An excerpt of <code>docs/index.html</code> as it rendered on 28
+      August, the largest release Argos has caught: 14 bookable seats across four
+      sessions, found in a single sweep.</p>
+    <div class="card" style="display:flex;flex-direction:column;gap:15px">
+      <div class="verdict">
+        <h3>14 seats free right now</h3>
+        <p class="note" style="font-size:13.5px">Across 4 of 76 sessions. These are
+          ordinary seats — wheelchair and companion spaces are counted separately
+          below.</p>
+        <div class="hit"><span class="when">Tue 1 Sep · 9:00pm</span><span class="seats">A13, A14, A28, A29, A30, A31, B35, B36</span><span class="btn">Book</span></div>
+        <div class="hit"><span class="when">Tue 1 Sep · 1:50pm</span><span class="seats">A30, B12, C31</span><span class="btn">Book</span></div>
+        <div class="hit"><span class="when">Tue 1 Sep · 5:25pm</span><span class="seats">A27, B36</span><span class="btn">Book</span></div>
+        <div class="hit"><span class="when">Fri 28 Aug · 10:10pm</span><span class="seats">A32</span><span class="btn">Book</span></div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><span class="n good">14</span><span class="l">seats free to book</span></div>
+        <div class="tile"><span class="n">76</span><span class="l">sessions tracked</span></div>
+        <div class="tile"><span class="n">75</span><span class="l">accessible spaces</span></div>
+        <div class="tile"><span class="n">117</span><span class="l">held by the venue</span></div>
+      </div>
+    </div>
+    <p class="legend">Screenshot this block, or open the live page and capture it
+      there. Crop to the verdict and the four tiles — the full session table is
+      unreadable at feed size.</p>
+  </section>
+
+  <section>
+    <h2>4 · The seat map</h2>
+    <p class="note">Your phone screenshot of the booking page. It makes the argument
+      better than the prose does: a legend with one white swatch labelled
+      "Available", a wall of grey, and no way to tell a reserved space from a seat
+      that simply has not sold.</p>
+    <div class="slot">
+      <strong>Screenshot goes here</strong>
+      <span>Save it into the repo, then tell me the path and I'll embed it.</span>
+      <code>~/Projects/argos/docs/seat-map.png</code>
+    </div>
+    <p class="legend">If you post both images, lead with this one — the empty seat
+      map is the problem, and the green panel above is the answer.</p>
+  </section>
+
+  <section>
+    <h2>5 · Before you publish</h2>
+    <div class="card">
+      <ol>
+        <li>Flip the repo public — Settings → Danger Zone → Change visibility.</li>
+        <li>Add a repo description and topics; it is the first thing anyone
+          following the link reads.</li>
+        <li>Re-run the stats if more than a day has passed, and correct the numbers
+          in the post.</li>
+        <li>Attach the seat-map screenshot, and the report panel if you want two.</li>
+        <li>Post in the morning on a weekday — this audience is at a desk.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="sprocket"></div>
+  </footer>
+</div>

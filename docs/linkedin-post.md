@@ -29,11 +29,11 @@ empty.
 It isn't quite empty, and that's the problem: two completely different things
 show up as "available". Some are the six accessibility spaces — reserved, not
 general admission, and not mine to take. The rest are simply the seats that clear
-last. Of the 42 bookable seats this thing has caught in four days, 28 were in the
-front two rows and none were further back than row F. Front-row corner, neck
-craned at a screen the size of a building.
+last. Of the 43 bookable seats this thing has caught in four days, 29 were in the
+front two rows, 79% were at the edges of a row, and not one came from the back
+half of the room.
 
-The site draws both in the same colour. Meanwhile the booking API's own
+The site draws every available seat in the same colour. Meanwhile the booking API's own
 `isSoldOut` flag reports 34 of those 77 sessions as perfectly fine.
 
 The listing tells you none of it. Session times and nothing else — no seat
@@ -46,7 +46,7 @@ seat type, and messages me when a seat a human can actually book appears.
 It doesn't book anything. It sends me a link and I do the rest — which, on
 current evidence, gives me about forty minutes to act.
 
-123 sweeps so far. 91 of them found nothing. That ratio is the entire argument
+134 sweeps so far. 92 of them found nothing. That ratio is the entire argument
 for automating it.
 
 It's caught three genuine releases. The longest any of them survived was under an
