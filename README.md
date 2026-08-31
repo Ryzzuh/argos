@@ -100,17 +100,18 @@ uv run python -m argos.watch         # full sweep, diff, alert, render the repor
 
 Expect a full sweep to take 2–4 minutes: the API allows 41 requests per rolling
 minute and the client stays under it deliberately. You should end up with
-`REPORT.md` and `docs/index.html`.
+`REPORT.md` and `docs/report.html`.
 
 ## Commands
 
 ```bash
 uv run python -m argos.token         # mint/refresh the bearer token
 uv run python -m argos.scrape        # one sweep -> SQLite
-uv run python -m argos.report        # REPORT.md + docs/index.html
+uv run python -m argos.report        # REPORT.md + docs/report.html
 uv run python -m argos.watch         # sweep, diff, alert, re-render
 uv run python -m argos.health        # watchdog: is the monitor alive?
 uv run python -m argos.cloud         # stateless variant (see the cloud section)
+uv run python -m argos.stats         # where the seats actually were
 ```
 
 | Flag | Effect |
