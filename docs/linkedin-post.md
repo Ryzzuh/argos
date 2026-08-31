@@ -16,20 +16,24 @@ switch and a Telegram bot, so that I could buy two cinema tickets.
 
 In my defence, it was necessary.
 
-The Odyssey is screening in IMAX 70mm in Melbourne. It's sold out. I couldn't
-find a single seat — which I assumed was the film's fault, and turned out to be
-mine. The URL I'd been given pointed at the wrong film id. The slug in the
-address bar is decorative; only the id counts, and mine belonged to a different
-film with no sessions at all. The site doesn't error on that. It renders an empty
-date picker, which looks exactly like "sold out".
+The Odyssey is screening in IMAX 70mm in Melbourne, and it's sold out. Not
+entirely, though — the site cheerfully lists sessions as still available. Open
+one and the seat map looks empty anyway.
 
-Then it got worse. The booking API has an `isSoldOut` flag. It's wrong on 34 of
-77 sessions. And the seats it does report as available are almost always the four
-wheelchair spaces and two companion seats in row M — not tickets I can buy. So
-the seat map reads as empty on sessions the site insists are open.
+It isn't empty. It's showing you the four wheelchair spaces and two companion
+seats in row M, which are the only things free on 34 of the 77 sessions. They're
+not tickets I can buy. The booking API's own `isSoldOut` flag says those sessions
+are fine.
 
-So: ~2,000 lines of Python that ignores the flag, counts the actual seat map, and
-messages me when a real seat appears.
+The listing doesn't help either. It gives you session times and nothing else — no
+seat counts, no way to ask for two together, no filter for row or seat type. So
+finding out whether anything is genuinely available means opening 77 seat maps
+one at a time and squinting at them. And when you inevitably find nothing, there
+is no way to be told if that changes. There's a watchlist, but it saves the film,
+not the seats.
+
+So: ~2,000 lines of Python that ignores the flag, counts the actual seat map by
+seat type, and messages me when a seat a human can actually book appears.
 
 It doesn't book anything. It sends me a link and I do the rest — which, on
 current evidence, gives me about forty minutes to act.
@@ -44,6 +48,9 @@ To be clear about what this is: read-only, paced well under the rate limit, one
 person buying two tickets. I don't condone or support using it — or anything like
 it — to bulk-grab inventory or resell. If that's your plan, this isn't for you
 and I'd rather you didn't.
+
+Mostly I built it for me. But it's public now, because the gap it fills isn't
+mine — anyone chasing this season is squinting at the same 77 seat maps.
 
 The cinema code isn't the reusable part. The reusable part is that "no results"
 and "broken" look identical from the outside — so the thing has to be able to
@@ -92,6 +99,23 @@ for s in store.latest_snapshots(40):
 
 Crop to the header and verdict block. Don't include the full session table — it's
 unreadable at feed size.
+
+## Claims to keep accurate
+
+Every factual claim below was verified before drafting, because the post names a
+real business:
+
+- **34 of 77 sessions report `isSoldOut: false`** while having nothing bookable —
+  measured across the sweep history, not estimated.
+- **Screen 1 has exactly 4 wheelchair and 2 companion seats**, from the seat
+  layout endpoint.
+- **The listing shows times only** — no seat counts, no filters. Verified on the
+  film page.
+- **"Add to watchlist" saves the film, not seat availability.** The page carries
+  no "notify", "alert", "remind" or "waitlist" language anywhere.
+
+Not claimed, because it could not be verified: anything about filtering *inside*
+the seat picker, which sits behind sign-in and was not inspected.
 
 ## Two things the post must not do
 

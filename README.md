@@ -28,22 +28,28 @@ building a monitor whose failure mode is not silence.
 
 ## Three things that make this film hard to book
 
-**The film id in the URL is what matters; the slug is decorative.**
-`HO00000547` is the IMAX 70mm presentation. `HO00000546` is the 4K Laser
-version, and `HO00000545` is an unrelated film with no sessions at all. Point a
-URL at that last id and the site renders an empty date picker rather than an
-error — which reads as "no tickets left" when it actually means "wrong film".
-This project started because of exactly that mistake.
-
-**The site's `isSoldOut` flag is wrong.** Around 34 of 77 sessions report
-`isSoldOut: false` while having nothing free at all. Every number here is
-counted from the actual seat map instead.
-
 **The "available" seats are usually wheelchair spaces.** Screen 1 seats 459: 428
 Normal/Standard, 25 Normal/Premium, 4 Wheelchair and 2 Companion. Those last six
-are free on nearly every session and are not ordinary tickets — which is why the
-seat map can look empty on a session the site insists is available, and why
+are free on nearly every session and are not ordinary tickets — which is why a
+seat map can look empty on a session the site lists as available, and why
 alerting on them would fire every single run and mean nothing.
+
+**The `isSoldOut` flag disagrees with the seat map.** Around 34 of 77 sessions
+report `isSoldOut: false` while having nothing bookable on them. Every number
+here is counted from the seat map and split by seat type instead.
+
+**Nothing in the UI answers the question you actually have.** The listing gives
+session times and nothing else — no seat counts, no filter for row or seat type,
+no way to ask which sessions have two seats together. Answering that by hand
+means opening every session's seat map in turn. And there is no availability
+notification: the site has a watchlist, but it saves the film, not the seats.
+
+> **Practical note on film ids.** The id is the only thing that identifies a
+> presentation; the slug in the URL is decorative and ignored. `HO00000547` is
+> the IMAX 70mm presentation and `HO00000546` is the 4K Laser one — different
+> films for booking purposes. An id with no sessions renders an empty date
+> picker rather than an error, so check the id before concluding a season is
+> sold out.
 
 ## Requirements
 
