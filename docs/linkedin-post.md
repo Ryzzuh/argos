@@ -31,11 +31,19 @@ the seat map reads as empty on sessions the site insists are open.
 So: ~2,000 lines of Python that ignores the flag, counts the actual seat map, and
 messages me when a real seat appears.
 
+It doesn't book anything. It sends me a link and I do the rest — which, on
+current evidence, gives me about forty minutes to act.
+
 123 sweeps so far. 91 of them found nothing. That ratio is the entire argument
 for automating it.
 
 It's caught three genuine releases. The longest any of them survived was under an
 hour.
+
+To be clear about what this is: read-only, paced well under the rate limit, one
+person buying two tickets. I don't condone or support using it — or anything like
+it — to bulk-grab inventory or resell. If that's your plan, this isn't for you
+and I'd rather you didn't.
 
 The cinema code isn't the reusable part. The reusable part is that "no results"
 and "broken" look identical from the outside — so the thing has to be able to
@@ -89,5 +97,13 @@ unreadable at feed size.
 
 - **Overclaim reusability.** It monitors one film at one cinema. The README is
   explicit about that and the post should not undo it.
-- **Imply it books anything.** It alerts; a human buys. Worth being precise about
-  given it's a scraper pointed at a ticketing site.
+- **Leave the scalping question hanging.** This film is a heavy reseller target —
+  IMAX's own page warns about it — so a public tool watching a sold-out season
+  can be misread by anyone skimming. The draft answers it twice, deliberately:
+  once as a fact ("it doesn't book anything") and once as a position ("I don't
+  condone or support..."). The fact alone reads as a technical footnote; the
+  position alone reads as boilerplate. Both, and it lands.
+
+The tone note: the disclaimer is placed *after* the punchline about forty
+minutes, not before it. A caveat that opens a paragraph kills the deadpan; one
+that follows a joke reads as the author being straight with you.
