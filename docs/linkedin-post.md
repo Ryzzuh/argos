@@ -16,21 +16,25 @@ switch and a Telegram bot, so that I could buy two cinema tickets.
 
 In my defence, it was necessary.
 
-The Odyssey is screening in IMAX 70mm in Melbourne, and it's sold out. Not
-entirely, though — the site cheerfully lists sessions as still available. Open
-one and the seat map looks empty anyway.
+Here's the thing I didn't know: seats come back. I'd assumed a sold-out session
+was sold out — that if someone couldn't make it, their ticket quietly evaporated.
+It doesn't. Returns and expired holds go back on sale continuously. Nobody tells
+you when. There's no waitlist, no alert, no "let me know if something frees up".
+There's a watchlist, and it saves the film, not the seats.
 
-It isn't empty. It's showing you the four wheelchair spaces and two companion
-seats in row M, which are the only things free on 34 of the 77 sessions. They're
-not tickets I can buy. The booking API's own `isSoldOut` flag says those sessions
-are fine.
+The Odyssey is screening in IMAX 70mm in Melbourne and it's sold out — except the
+site lists sessions as available anyway, and when you open one the seat map looks
+empty.
 
-The listing doesn't help either. It gives you session times and nothing else — no
-seat counts, no way to ask for two together, no filter for row or seat type. So
-finding out whether anything is genuinely available means opening 77 seat maps
-one at a time and squinting at them. And when you inevitably find nothing, there
-is no way to be told if that changes. There's a watchlist, but it saves the film,
-not the seats.
+It isn't quite empty. It's showing you whatever nobody wanted: a front-row corner
+seat, or one of the six accessibility spaces, which aren't general admission. Of
+the 42 bookable seats this thing has caught in four days, 28 were in the front
+two rows and none were further back than row F. Meanwhile the booking API's own
+`isSoldOut` flag reports 34 of those 77 sessions as perfectly fine.
+
+The listing tells you none of it. Session times and nothing else — no seat
+counts, no filter for row or seat type, no way to ask which sessions have two
+seats together. Finding out means opening 77 seat maps and squinting.
 
 So: ~2,000 lines of Python that ignores the flag, counts the actual seat map by
 seat type, and messages me when a seat a human can actually book appears.
@@ -50,7 +54,8 @@ it — to bulk-grab inventory or resell. If that's your plan, this isn't for you
 and I'd rather you didn't.
 
 Mostly I built it for me. But it's public now, because the gap it fills isn't
-mine — anyone chasing this season is squinting at the same 77 seat maps.
+mine — anyone chasing this season is squinting at the same 77 seat maps, and
+most of them don't know the seats come back at all.
 
 The cinema code isn't the reusable part. The reusable part is that "no results"
 and "broken" look identical from the outside — so the thing has to be able to
@@ -108,7 +113,12 @@ real business:
 - **34 of 77 sessions report `isSoldOut: false`** while having nothing bookable —
   measured across the sweep history, not estimated.
 - **Screen 1 has exactly 4 wheelchair and 2 companion seats**, from the seat
-  layout endpoint.
+  layout endpoint. Mentioned as one category of unwanted seat, not as the story —
+  the point is which seats go unsold, not who they are reserved for.
+- **42 distinct bookable seats found over four days; 28 in rows A-B, none past
+  row F.** Straight from the `free_seats` table, deduplicated by seat id.
+- **Returns and expired holds do go back on sale**, which is the finding that
+  started the whole thing and is not communicated anywhere in the booking flow.
 - **The listing shows times only** — no seat counts, no filters. Verified on the
   film page.
 - **"Add to watchlist" saves the film, not seat availability.** The page carries
