@@ -143,6 +143,8 @@ def main() -> None:
                         help="sweep and diff, but send nothing")
     parser.add_argument("--force-alert", action="store_true",
                         help="send an alert for whatever is currently free, to test the path")
+    parser.add_argument("--full", action="store_true",
+                        help="sweep every date, ignoring each film's within_days")
     parser.add_argument("--no-report", action="store_true")
     parser.add_argument("--film-id", default=None,
                         help="watch just this film, ignoring films.toml")
@@ -201,7 +203,12 @@ def main() -> None:
 def sweep_one(film: Film, args) -> dict:
     """One film's sweep. Each gets its own guard so one failing does not stop
     the rest of the watch list being checked."""
-    within = args.within_days if args.within_days is not None else film.within_days
+    # --full is the whole schedule. An explicit --within-days wins over a film's
+    # own window; otherwise each film uses the window in films.toml.
+    if args.full:
+        within = None
+    else:
+        within = args.within_days if args.within_days is not None else film.within_days
     with health.guard(f"sweep:{film.id}"):
         return asyncio.run(sweep_and_persist(
             film.id, verbose=False, within_days=within))

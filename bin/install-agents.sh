@@ -24,8 +24,8 @@ done
 
 # job | interval seconds | arguments passed to bin/run.sh
 JOBS=(
-  "watch|600|watch --within-days 14 --no-report"
-  "full|10800|watch"
+  "watch|600|watch --no-report"
+  "full|10800|watch --full"
   "watchdog|7200|health"
 )
 

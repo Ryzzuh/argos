@@ -118,7 +118,8 @@ uv run python -m argos.zone          # check a seat zone against the room and hi
 
 | Flag | Effect |
 |---|---|
-| `--within-days N` | only check sessions N days out (a watchlist run) |
+| `--within-days N` | only check sessions N days out, overriding each film's window |
+| `--full` | sweep every date, ignoring `within_days` |
 | `--dry-run` | sweep and diff, send nothing |
 | `--replay N` | re-send snapshot N's alert, clearly marked as a test |
 | `--no-report` | skip re-rendering the page |
@@ -137,8 +138,8 @@ The plists cannot be committed with real paths, so they are generated from
 
 | Job | Every | Does |
 |---|---|---|
-| `watch` | 10 min | next 14 days — the sniping loop |
-| `full` | 3 h | every session, and re-renders the report page |
+| `watch` | 10 min | each film's `within_days` window — the sniping loop |
+| `full` | 3 h | `--full`: every session, and re-renders the report page |
 | `watchdog` | 2 h | alerts if no sweep has run in 90 min |
 
 The watchdog is deliberately a separate process, because the failure it exists to
