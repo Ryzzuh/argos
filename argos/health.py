@@ -115,10 +115,20 @@ def report_failure(signature: str, message: str, *, detail: str = "") -> None:
 
 
 def report_recovery(signature: str) -> None:
-    """Announce that a previously failing thing works again."""
+    """Announce that a previously failing thing works again.
+
+    Also clears the unqualified form of a scoped signature. Signatures grew a
+    film suffix when the watch list became plural, and without this an entry
+    recorded under the old bare name would stay pending forever: nothing would
+    ever call recovery for a name no longer in use, leaving a stale failure
+    that quietly suppresses nothing and reassures nobody.
+    """
     state = _load(ALERT_STATE, {})
     failures = state.get("failures", {})
     entry = failures.pop(signature, None)
+    if ":" in signature:
+        legacy = failures.pop(signature.split(":", 1)[0], None)
+        entry = entry or legacy
     if not entry:
         return
 
