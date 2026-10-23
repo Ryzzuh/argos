@@ -4,7 +4,7 @@
 
 ## The short version
 
-**101 general-admission seat(s) free right now, across 70 of 74 sessions.**
+**94 general-admission seat(s) free right now, across 70 of 74 sessions.**
 
 - **Wed 16 Dec 12:01am** — 2 seat(s): A12, A13 — [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23356/seats)
 - **Wed 16 Dec 11:30am** — 42 seat(s): A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A26, A27, A28, A29, A30, A31, A32, A33, A34, B10, B11, B12, B13, B14, B15, B16, B29, B30, B31, B32, B33, B34, B35, C8, C9, C10, C35, C36, C37, C38, D40 — [book](https://web.imaxmelbourne.com.au/order/showtimes/IMAX-23357/seats)

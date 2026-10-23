@@ -166,6 +166,24 @@ def bookable_seats_in(snapshot_id: int) -> dict[str, set[str]]:
     return out
 
 
+def bookable_details_in(snapshot_id: int) -> dict[str, list[tuple[str, str, str]]]:
+    """{showtime_id: [(seat_id, row_label, seat_label), ...]} for free Normal seats.
+
+    Everything a zone needs to decide, with nothing filtered: the zone is applied
+    on top of this, never baked into what is recorded.
+    """
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT showtime_id, seat_id, row_label, seat_label FROM free_seats"
+            " WHERE snapshot_id = ? AND seat_type = 'Normal'", (snapshot_id,)
+        ).fetchall()
+    out: dict[str, list[tuple[str, str, str]]] = {}
+    for row in rows:
+        out.setdefault(row["showtime_id"], []).append(
+            (row["seat_id"], row["row_label"], row["seat_label"]))
+    return out
+
+
 def snapshot_rows(snapshot_id: int) -> list[sqlite3.Row]:
     with connect() as conn:
         return conn.execute(

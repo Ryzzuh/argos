@@ -28,10 +28,13 @@ REALERT_AFTER = timedelta(hours=1)
 class ArgosError(RuntimeError):
     """Base for failures worth telling a human about."""
     signature = "argos"
+    # Whether the failure belongs to one film. A token is shared by all of them.
+    per_film = True
 
 
 class TokenError(ArgosError):
     signature = "token"
+    per_film = False
 
 
 class SchemaDrift(ArgosError):
@@ -233,8 +236,12 @@ def guard(signature: str):
     try:
         yield
     except ArgosError as exc:
-        report_failure(getattr(exc, "signature", signature), str(exc),
-                       detail=traceback.format_exc())
+        # The class names the kind of failure; the film, if there is one, comes
+        # from the caller. Without this a drift on one film would share a
+        # signature with another's and mute it for an hour.
+        kind, _, film = signature.partition(":")
+        scoped = f"{exc.signature}:{film}" if film and exc.per_film else exc.signature
+        report_failure(scoped, str(exc), detail=traceback.format_exc())
         write_heartbeat("failed", error=str(exc))
         raise SystemExit(1)
     except Exception as exc:                       # noqa: BLE001 - deliberate catch-all

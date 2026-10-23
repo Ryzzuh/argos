@@ -12,7 +12,9 @@ import tomllib
 from dataclasses import dataclass
 
 from .config import FILM_ID, FILMS_FILE
+from . import zone as zone_mod
 from .health import ArgosError
+from .zone import Zone
 
 # A full sweep is roughly this many requests per film, against a limiter that
 # allows 41 per rolling minute. Used to warn when a watch list cannot finish
@@ -27,9 +29,21 @@ class Film:
     name: str
     within_days: int | None = 14
     enabled: bool = True
+    zone: Zone | None = None     # None: every bookable seat alerts
 
     def __str__(self) -> str:
         return f"{self.name} ({self.id})"
+
+
+FILM_KEYS = {"id", "name", "enabled", "within_days", "seats"}
+
+
+def _reject_unknown(table: dict, allowed: set, where: str) -> None:
+    """A misspelt key that is silently ignored is a setting that never applies:
+    `enable = false` would leave a film running and tell nobody."""
+    if unknown := sorted(set(table) - allowed):
+        raise ArgosError(f"{where}: unknown setting(s) {unknown}; "
+                         f"allowed are {sorted(allowed)}")
 
 
 def load(path=None, *, include_disabled: bool = False) -> list[Film]:
@@ -48,15 +62,24 @@ def load(path=None, *, include_disabled: bool = False) -> list[Film]:
     except tomllib.TOMLDecodeError as exc:
         raise ArgosError(f"{path.name} is not valid TOML: {exc}") from exc
 
+    _reject_unknown(raw, {"film", "defaults"}, path.name)
+    defaults = raw.get("defaults", {})
+    _reject_unknown(defaults, {"seats"}, f"[defaults] in {path.name}")
+    default_seats = defaults.get("seats", {})
+
     films = []
     for entry in raw.get("film", []):
         if not entry.get("id"):
             raise ArgosError(f"{path.name} has a [[film]] entry with no id")
+        label = f"film {entry['id']}"
+        _reject_unknown(entry, FILM_KEYS, label)
         films.append(Film(
             id=entry["id"],
             name=entry.get("name") or entry["id"],
             within_days=entry.get("within_days", 14),
             enabled=bool(entry.get("enabled", True)),
+            zone=zone_mod.resolve(default_seats, entry.get("seats"),
+                                  f"{label} seats"),
         ))
 
     if not films:
@@ -106,6 +129,7 @@ def main() -> None:
         scope = f"next {f.within_days} days" if f.within_days else "all dates"
         mark = "on " if f.enabled else "off"
         print(f"  [{mark}] {f.id}  {f.name}  [{scope}]")
+        print(f"          seats: {f.zone.describe() if f.zone else 'any bookable seat'}")
     if not active:
         print("\n! Every film is disabled — nothing will be monitored.")
     if warning := cadence_warning(active):

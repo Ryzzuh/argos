@@ -2,10 +2,19 @@
 #
 # Find an id with:  uv run python -m argos.films --available
 # Show this list:   uv run python -m argos.films
+# Test your seats:  uv run python -m argos.zone
 #
 # The id is the only thing that identifies a presentation - the slug in a film
 # URL is decorative. HO00000547 is the IMAX 70mm Odyssey; HO00000546 is the 4K
 # Laser one, which is a different film as far as booking is concerned.
+
+# Where you would sit. Applies to every film below unless one sets its own.
+# Alerts only - the database still records every seat.
+[defaults.seats]
+min_row  = "D"        # this row or further back; A is nearest the screen
+cols     = [18, 28]   # inclusive band of seat numbers: 11 wide, centred on 23
+together = 2          # at least this many adjacent free seats, all in the band
+# enabled = false     # turn the whole filter off
 
 [[film]]
 id = "HO00000547"
@@ -21,3 +30,5 @@ id = "HO00000610"
 name = "Dune: Part Three (IMAX 70mm)"
 enabled = false
 within_days = 14
+# [film.seats]        # a film can override any field of the default zone
+# cols = [14, 32]

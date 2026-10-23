@@ -15,6 +15,7 @@ from . import health, notify, report, store
 from .config import ALERT_STATE, TZ, booking_url
 from .films import Film, cadence_warning, load as load_films
 from .scrape import sweep_and_persist
+from .zone import Zone, effective, format_runs, newly_qualifying, qualify
 
 
 def _state() -> dict:
@@ -29,32 +30,24 @@ def _save_state(state: dict) -> None:
     ALERT_STATE.write_text(json.dumps(state, indent=2, default=str))
 
 
-def find_new_seats(film_id: str) -> dict[str, set[str]]:
-    """Bookable seats present in the newest snapshot but not the one before.
+def find_new_seats(film_id: str, zone: Zone | None = None) -> dict[str, set[str]]:
+    """Seats that qualify in the newest snapshot but did not in the one before.
 
     Only showtimes appearing in *both* snapshots are compared, so a narrow
     watchlist run followed by a full sweep doesn't report every previously
-    unchecked session as a new opening.
+    unchecked session as a new opening. The zone is applied to both snapshots,
+    so changing it cannot make old seats look newly released.
     """
     snaps = store.latest_snapshots(2, film_id)
     if len(snaps) < 2:
         return {}
-
-    current = store.bookable_seats_in(snaps[0]["id"])
-    previous = store.bookable_seats_in(snaps[1]["id"])
-    checked_before = {r["showtime_id"] for r in store.snapshot_rows(snaps[1]["id"])}
-
-    new: dict[str, set[str]] = {}
-    for showtime_id, seats in current.items():
-        if showtime_id not in checked_before:
-            continue
-        fresh = seats - previous.get(showtime_id, set())
-        if fresh:
-            new[showtime_id] = fresh
-    return new
+    comparable = {r["showtime_id"] for r in store.snapshot_rows(snaps[1]["id"])}
+    return newly_qualifying(store.bookable_details_in(snaps[1]["id"]),
+                            store.bookable_details_in(snaps[0]["id"]),
+                            zone, comparable)
 
 
-def find_new_sessions(film_id: str) -> list:
+def find_new_sessions(film_id: str, zone: Zone | None = None) -> list[dict]:
     """Screenings added to the schedule since the last sweep, with seats free.
 
     These are invisible to the seat diff: a session that did not exist before
@@ -66,18 +59,35 @@ def find_new_sessions(film_id: str) -> list:
     snaps = store.latest_snapshots(1, film_id)
     if not snaps or store.is_first_snapshot_for_film(snaps[0]["id"], film_id):
         return []            # a film's first sweep: everything is trivially new
-    return [r for r in store.sessions_first_seen_in(snaps[0]["id"]) if r["bookable"]]
+    sessions = [dict(r) for r in store.sessions_first_seen_in(snaps[0]["id"])
+                if r["bookable"]]
+    if zone is None:
+        return sessions
+    # A new session with 400 free seats and none in your zone is not news.
+    details = store.bookable_details_in(snaps[0]["id"])
+    kept = []
+    for r in sessions:
+        n = len(qualify(zone, details.get(r["id"], [])))
+        if n:
+            kept.append({**r, "bookable": n})
+    return kept
 
 
-def _describe(showtime_id: str, seat_ids: set[str], snap: int | None = None) -> str:
+def _describe(showtime_id: str, seat_ids: set[str], snap: int | None = None,
+              together: int = 1) -> str:
     if snap is None:
-        snap = store.latest_snapshots(1)[0]["id"]
+        raise ValueError("a snapshot id is required: the latest one globally may "
+                         "belong to a different film")
     rows = {r["showtime_id"]: r for r in store.snapshot_rows(snap)}
     seats = [s for s in store.free_seat_rows(snap)
              if s["showtime_id"] == showtime_id and s["seat_id"] in seat_ids]
     seats.sort(key=lambda s: (s["row_label"],
                               int(s["seat_label"]) if str(s["seat_label"]).isdigit() else 0))
-    labels = ", ".join(f"{s['row_label']}{s['seat_label']}" for s in seats)
+    if together > 1:
+        labels = format_runs([(s["seat_id"], s["row_label"], s["seat_label"])
+                              for s in seats])
+    else:
+        labels = ", ".join(f"{s['row_label']}{s['seat_label']}" for s in seats)
 
     row = rows.get(showtime_id)
     when = "unknown time"
@@ -88,12 +98,15 @@ def _describe(showtime_id: str, seat_ids: set[str], snap: int | None = None) -> 
             f"[Book now]({booking_url(showtime_id)})")
 
 
-def alert_new_sessions(sessions: list, title: str | None = None) -> None:
+def alert_new_sessions(sessions: list, title: str | None = None,
+                       zone: Zone | None = None) -> None:
     blocks = []
     for r in sessions:
         dt = datetime.fromisoformat(r["starts_at"]).astimezone(TZ)
-        blocks.append(f"*{dt:%a %-d %b, %-I:%M%p}* — {r['bookable']} of "
-                      f"{r['total']} seats free\n[Book now]({booking_url(r['id'])})")
+        free = (f"{r['bookable']} seats in your zone" if zone
+                else f"{r['bookable']} of {r['total']} seats free")
+        blocks.append(f"*{dt:%a %-d %b, %-I:%M%p}* — {free}\n"
+                      f"[Book now]({booking_url(r['id'])})")
     text = (f"🆕 *{len(sessions)} new session"
             f"{'' if len(sessions) == 1 else 's'} added* — "
             f"{title or 'IMAX Melbourne'}\n\n" + "\n\n".join(blocks))
@@ -102,16 +115,19 @@ def alert_new_sessions(sessions: list, title: str | None = None) -> None:
 
 
 def alert(new: dict[str, set[str]], snap: int | None = None,
-          *, replay: bool = False, title: str | None = None) -> None:
+          *, replay: bool = False, title: str | None = None,
+          zone: Zone | None = None) -> None:
     total = sum(len(v) for v in new.values())
-    blocks = [_describe(sid, seats, snap) for sid, seats in new.items()]
+    together = zone.together if zone else 1
+    blocks = [_describe(sid, seats, snap, together) for sid, seats in new.items()]
     if replay:
         # A replay must never be mistaken for a live opening.
         head = (f"🧪 *Test alert (replay of snapshot #{snap})* — this is what a real "
                 f"one looks like. These seats are not necessarily still free.\n\n")
         tail = ""
     else:
-        head = (f"🎟 *{total} seat{'' if total == 1 else 's'} just opened* — "
+        where = " in your zone" if zone else ""
+        head = (f"🎟 *{total} seat{'' if total == 1 else 's'} just opened{where}* — "
                 f"{title or 'IMAX Melbourne'}\n\n")
         tail = "\n\n_Seats go fast; this is a notification, not a hold._"
     text = head + "\n\n".join(blocks) + tail
@@ -148,8 +164,10 @@ def main() -> None:
             print(f"replayed snapshot #{args.replay} to Telegram")
         return
 
-    films = ([Film(id=args.film_id, name=args.film_id)] if args.film_id
-             else load_films())
+    # Guarded: a malformed films.toml must alert, not crash into a log nobody reads.
+    with health.guard("config"):
+        films = ([Film(id=args.film_id, name=args.film_id)] if args.film_id
+                 else load_films())
     if not films:
         # Every film disabled is a deliberate state, not a fault: say so and
         # exit cleanly rather than alerting about having nothing to do.
@@ -159,10 +177,14 @@ def main() -> None:
     if warning := cadence_warning(films):
         health.log_error(warning)
 
-    totals = []
+    totals, failed = [], []
     for film in films:
-        summary = sweep_one(film, args)
-        totals.append((film, summary))
+        try:
+            totals.append((film, sweep_one(film, args)))
+        except SystemExit:
+            # guard() has already reported it and exits the process; letting that
+            # propagate would leave every later film unchecked.
+            failed.append(film)
 
     for film, summary in totals:
         report_film(film, summary, args)
@@ -170,8 +192,10 @@ def main() -> None:
         report.main()
 
     alive = ", ".join(f"{f.name}: {s['bookable_total']}" for f, s in totals)
-    health.maybe_send_digest(f"Bookable seats — {alive}. Monitor running normally.")
-    return
+    if totals:
+        health.maybe_send_digest(f"Bookable seats — {alive}. Monitor running normally.")
+    if failed:
+        raise SystemExit(1)      # after the films that did work have been reported
 
 
 def sweep_one(film: Film, args) -> dict:
@@ -188,31 +212,38 @@ def report_film(film: Film, summary: dict, args) -> None:
         print(f"[{film.name}] nothing in scope — no sessions in the window yet")
         return
 
-    fresh_sessions = find_new_sessions(film.id)
+    snaps = store.latest_snapshots(1, film.id)
+    snap = snaps[0]["id"] if snaps else None
+    # Validated against the real seat layout, and ignored (loudly) if it can
+    # never match: a typo should cost noise, not silence.
+    zone = effective(film.zone, film.id, film.name)
+
+    fresh_sessions = find_new_sessions(film.id, zone)
     if fresh_sessions:
         print(f"[{film.name}] {len(fresh_sessions)} newly added session(s) with seats free")
         if args.dry_run:
             for r in fresh_sessions:
                 print(f"  {r['starts_at']}  {r['bookable']}/{r['total']} free")
         else:
-            alert_new_sessions(fresh_sessions, film.name)
+            alert_new_sessions(fresh_sessions, film.name, zone)
 
-    new = find_new_seats(film.id)
+    new = find_new_seats(film.id, zone)
 
-    if args.force_alert and not new:
+    if args.force_alert and not new and snap is not None:
         # Test the delivery path against whatever is genuinely free right now.
-        snaps = store.latest_snapshots(1, film.id)
-        if snaps:
-            new = store.bookable_seats_in(snaps[0]["id"])
+        new = store.bookable_seats_in(snap)
 
     if new:
         total = sum(len(v) for v in new.values())
-        print(f"[{film.name}] {total} newly bookable seat(s) across {len(new)} session(s)")
+        label = " in your zone" if zone else ""
+        print(f"[{film.name}] {total} newly bookable seat(s){label} "
+              f"across {len(new)} session(s)")
         if args.dry_run:
             for sid, seats in new.items():
-                print("  " + _describe(sid, seats).replace("\n", " | "))
+                print("  " + _describe(sid, seats, snap,
+                                       zone.together if zone else 1).replace("\n", " | "))
         else:
-            alert(new, title=film.name)
+            alert(new, snap, title=film.name, zone=zone)
     else:
         print(f"[{film.name}] no change — {summary['bookable_total']} bookable "
               f"seat(s) across {summary['showtimes']} session(s)")

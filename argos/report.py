@@ -6,6 +6,7 @@ from datetime import datetime
 
 from . import store
 from .films import load as load_films
+from .zone import Zone, effective, qualify
 from .config import DATA, REPORT_HTML, REPORT_MD, TZ, booking_url
 from .token import token_expiry
 
@@ -242,7 +243,8 @@ footer code{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--i
 """
 
 
-def _film_section(film_id: str | None = None) -> tuple[str, str, str]:
+def _film_section(film_id: str | None = None,
+                  zone: Zone | None = None) -> tuple[str, str, str]:
     """Returns (heading, sub-line, body html) for one film."""
     snap, rows, seats, summary = _load(film_id)
     taken = datetime.fromisoformat(snap["taken_at"]).astimezone(TZ)
@@ -274,8 +276,15 @@ def _film_section(film_id: str | None = None) -> tuple[str, str, str]:
             'which are not ordinary tickets — which is why the seat map looks empty even '
             'on sessions the site says are not sold out.</p></div>').format(len(rows))
 
+    in_zone = None
+    if zone is not None:
+        details = store.bookable_details_in(snap["id"])
+        in_zone = sum(len(qualify(zone, seats)) for seats in details.values())
+
     tiles = [
         (bookable, "seats free to book", "good" if bookable else ""),
+    ] + ([(in_zone, f"in your zone ({zone.describe()})", "good" if in_zone else "")]
+         if in_zone is not None else []) + [
         (len(rows), "sessions tracked", ""),
         (summary.get("accessible_total", 0), "accessible spaces", ""),
         (summary.get("house_total", 0), "held by the venue", ""),
@@ -333,7 +342,8 @@ def render_html() -> str:
     sections = []
     for film in films:
         try:
-            heading, sub, body = _film_section(film.id)
+            heading, sub, body = _film_section(
+                film.id, effective(film.zone, film.id, film.name, alert=False))
         except SystemExit:
             continue                      # never swept yet; nothing to render
         sections.append(

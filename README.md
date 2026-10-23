@@ -113,6 +113,7 @@ uv run python -m argos.health        # watchdog: is the monitor alive?
 uv run python -m argos.cloud         # stateless variant (see the cloud section)
 uv run python -m argos.stats         # where the seats actually were
 uv run python -m argos.films         # the watch list (--available to find ids)
+uv run python -m argos.zone          # check a seat zone against the room and history
 ```
 
 | Flag | Effect |
@@ -190,6 +191,55 @@ normal state, reported once per run and never alerted on.
 auditorium rather than the film, so they hold for anything at this cinema. A
 film on another screen would raise a drift warning, which is the intended
 behaviour.
+
+### Choosing where to sit
+
+A zone narrows alerts to seats you would actually take. It lives in the same file,
+as a global default that any film can override field by field:
+
+```toml
+[defaults.seats]
+min_row  = "D"        # this row or further back; A is nearest the screen
+cols     = [18, 28]   # inclusive band of seat numbers: 11 wide, centred on 23
+together = 2          # at least this many adjacent free seats, all in the band
+
+[[film]]
+id = "HO00000610"
+[film.seats]          # this film only: keep min_row and together, widen the band
+cols = [14, 32]
+# enabled = false     # or switch the filter off for this film
+```
+
+Every field is optional, and omitting them all means no filter.
+
+- **It filters alerts, never the data.** The database still records every seat, so
+  the report, `argos.stats` and any past sweep are unaffected, and you can change
+  the zone without re-sweeping. It is applied to both sides of each comparison,
+  which is why widening it does not make old seats look newly released.
+- **Rows are letters, compared as letters.** There is no row I, so counting rows
+  breaks after H. The venue's own row numbering runs back to front, so it is not
+  used.
+- **`cols` are grid columns.** In rows A-L the printed seat number equals the
+  column, so write the band in the numbers on the seat map. Row M is the
+  exception: its printed numbers drift from the grid by up to three, and it is
+  split into Standard and Premium blocks, so a zone is approximate there.
+- **`together` needs the whole run inside the band.** A pair straddling the edge
+  does not count.
+- **A zone that can never match is reported, then ignored.** A mistyped row or a
+  band off the grid would otherwise make the monitor run forever and never alert,
+  so it is checked against the real seat layout, and alerting falls back to every
+  bookable seat rather than none. Unknown keys are errors for the same reason.
+
+Check a zone before trusting it:
+
+```bash
+uv run python -m argos.zone
+```
+
+It reports how many seats could ever qualify, and replays every recorded sweep to
+show how many alerts the zone would have sent against how many it would not.
+That second number is worth reading: `together = 2` in a narrow band is a rare
+event, and the replay says how rare.
 
 ### Rate limits set the ceiling
 
@@ -299,6 +349,16 @@ to leaving the page open and refreshing it — which is what it replaces.
 
 Credentials are read at runtime from environment variables (or, on the author's
 machine, Claude Code's Telegram channel config) and never enter this repo.
+
+## Tests
+
+```bash
+uv run python -m unittest discover -s tests -v
+```
+
+The zone logic is pure and covered directly: row and column bounds, adjacency
+across areas and rows, the missing row I, and that changing a zone cannot flood
+alerts.
 
 ## The write-up
 
