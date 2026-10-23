@@ -53,14 +53,19 @@ REPORT_MD = ROOT / "REPORT.md"
 # the live report is generated alongside it.
 REPORT_HTML = DOCS / "report.html"
 
+# Which films to watch lives in films.toml; see argos/films.py. This is the
+# fallback for ad-hoc runs and the --film-id override.
 FILM_ID = os.environ.get("IMAX_FILM_ID", "HO00000547")
-FILM_SLUG = "THE-ODYSSEY-IMAX-70MM-PRESENTATION"
 SITE_ID = "IMAX"
+FILMS_FILE = Path(os.environ.get("IMAX_FILMS_FILE", ROOT / "films.toml"))
 
 WEB_BASE = "https://web.imaxmelbourne.com.au"
 API_BASE = "https://digital-api.imaxmelbourne.com.au/ocapi/v1"
 
-FILM_PAGE = f"{WEB_BASE}/films/{FILM_SLUG}/{FILM_ID}"
+# The bearer token is anonymous and sits in __NEXT_DATA__ on *every* page, so
+# minting does not need a film page - which is just as well, because the slug in
+# a film URL is decorative and the id would otherwise have to be kept in step.
+TOKEN_PAGE = WEB_BASE
 TZ = ZoneInfo("Australia/Melbourne")
 
 # Seat types that count as a real, bookable general-admission seat. Wheelchair

@@ -10,19 +10,21 @@ Paste as plain text; LinkedIn renders no markdown. Keep the blank lines.
 
 ## Draft
 
-I've been using some time between roles to learn agentic development properly —
-not the demos, the actual thing. What breaks, what you have to design around,
-where it genuinely saves you and where it quietly costs you.
+I've been using some downtime between roles to learn agentic development.
 
-So naturally I built a monitoring system to buy two cinema tickets.
+I'm obsessed with improving UX and have a soft spot for seeing epics at the
+cinema. So naturally I built a monitoring system to buy two tickets to the
+famously popular Odyssey.
 
-The Odyssey is screening in IMAX 70mm in Melbourne. 459 seats, gone, session
-after session, a month deep into the schedule.
+It's screening in IMAX 70mm in Melbourne. A second round of showings was
+released a few weeks back. Cracking my knuckles, I eagerly awaited the release.
+As expected, the site became bogged down. By the time it wasn't, I couldn't find
+a single session with a ticket that wasn't in the front-row corner.
 
-Here's what I didn't know: seats come back. Returns, expired holds, failed
+What I didn't know was that seats come back. Returns, expired holds, failed
 payments — continuously, invisibly, at no particular time of day. There is no
-waitlist and no notification of any kind. In four days it found 43 of them. Most
-lasted under an hour.
+waitlist and no notification of any kind. In four days the monitor found 43 of
+them. Nearly nine in ten lasted under an hour.
 
 A few other things that turned up:
 
@@ -33,14 +35,23 @@ actual engineering problem.
 
 It watches and sends me a link. A human does the buying.
 
+Was this effort a success? Yes. I got E23 — row five, dead centre. Not the best
+seat in the house, but the best one that came free in four days.
+
+I've open-sourced it, so feel free to read more or run it yourself.
+
 Write-up: https://ryzzuh.github.io/argos/
 Code: https://github.com/ryzzuh/argos
 
 ---
 
-**≈200 words.** The hook is the first two lines — "learning agentic development"
-into "so naturally I built a monitoring system to buy two cinema tickets" — which
-is the whole post in miniature and survives the feed's "see more" fold.
+**≈230 words.** The hook is the first two lines — between roles, learning
+agentic development, straight into "so naturally I built a monitoring system to
+buy two tickets" — which is the whole post in miniature and survives the feed's
+"see more" fold.
+
+Links sit at the very end, after the payoff. Putting them before it buries the
+result and makes the closing line read as a repeat of the Code link.
 
 ## Image
 

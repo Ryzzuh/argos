@@ -10,18 +10,20 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-from .config import DB_PATH
+from .config import DB_PATH, FILM_ID as LEGACY_FILM_ID
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS snapshots (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     taken_at       TEXT NOT NULL,
+    film_id        TEXT,
     showtime_count INTEGER NOT NULL,
     bookable_total INTEGER NOT NULL,
     partial        INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS showtimes (
     id             TEXT PRIMARY KEY,
+    film_id        TEXT,
     business_date  TEXT NOT NULL,
     starts_at      TEXT NOT NULL,
     screen_id      TEXT,
@@ -66,22 +68,37 @@ def connect():
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(showtimes)")}
         if "first_seen" not in cols:
             conn.execute("ALTER TABLE showtimes ADD COLUMN first_seen TEXT")
+        # Databases written before multi-film support have no film_id. Every row
+        # in them is the film this started with, so backfill rather than discard.
+        if "film_id" not in cols:
+            conn.execute("ALTER TABLE showtimes ADD COLUMN film_id TEXT")
+            conn.execute("UPDATE showtimes SET film_id = ? WHERE film_id IS NULL",
+                         (LEGACY_FILM_ID,))
+        snap_cols = {r["name"] for r in conn.execute("PRAGMA table_info(snapshots)")}
+        if "film_id" not in snap_cols:
+            conn.execute("ALTER TABLE snapshots ADD COLUMN film_id TEXT")
+            conn.execute("UPDATE snapshots SET film_id = ? WHERE film_id IS NULL",
+                         (LEGACY_FILM_ID,))
+        # After the columns exist, not before: executescript runs first.
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_film"
+                     " ON snapshots(film_id, id)")
         yield conn
         conn.commit()
     finally:
         conn.close()
 
 
-def save_snapshot(reports, *, partial: bool = False) -> int:
+def save_snapshot(reports, *, film_id: str, partial: bool = False) -> int:
     """Persist one sweep. Returns the new snapshot id."""
     taken_at = datetime.now(timezone.utc).isoformat()
     bookable_total = sum(r.bookable_count for r in reports)
 
     with connect() as conn:
         cur = conn.execute(
-            "INSERT INTO snapshots (taken_at, showtime_count, bookable_total, partial)"
-            " VALUES (?, ?, ?, ?)",
-            (taken_at, len(reports), bookable_total, int(partial)),
+            "INSERT INTO snapshots"
+            " (taken_at, film_id, showtime_count, bookable_total, partial)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (taken_at, film_id, len(reports), bookable_total, int(partial)),
         )
         snap = cur.lastrowid
 
@@ -89,14 +106,15 @@ def save_snapshot(reports, *, partial: bool = False) -> int:
         # sweep on which a session first appeared in the schedule.
         conn.executemany(
             "INSERT INTO showtimes"
-            " (id, business_date, starts_at, screen_id, seat_layout_id, first_seen)"
-            " VALUES (?, ?, ?, ?, ?, ?)"
+            " (id, film_id, business_date, starts_at, screen_id, seat_layout_id, first_seen)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)"
             " ON CONFLICT(id) DO UPDATE SET"
+            "   film_id=excluded.film_id,"
             "   business_date=excluded.business_date,"
             "   starts_at=excluded.starts_at,"
             "   screen_id=excluded.screen_id,"
             "   seat_layout_id=excluded.seat_layout_id",
-            [(r.showtime_id, r.business_date, r.starts_at.isoformat(),
+            [(r.showtime_id, film_id, r.business_date, r.starts_at.isoformat(),
               r.screen_id, r.seat_layout_id, taken_at) for r in reports],
         )
         conn.executemany(
@@ -117,10 +135,21 @@ def save_snapshot(reports, *, partial: bool = False) -> int:
     return snap
 
 
-def latest_snapshots(limit: int = 2) -> list[sqlite3.Row]:
+def latest_snapshots(limit: int = 2, film_id: str | None = None) -> list[sqlite3.Row]:
+    """Most recent sweeps, for one film unless told otherwise.
+
+    Scoping this is what makes multiple films safe. Comparing the global last
+    two snapshots across different films compares sets of showtimes that share
+    no ids at all, and the diff silently reports nothing.
+    """
     with connect() as conn:
+        if film_id is None:
+            return conn.execute(
+                "SELECT * FROM snapshots ORDER BY id DESC LIMIT ?", (limit,)
+            ).fetchall()
         return conn.execute(
-            "SELECT * FROM snapshots ORDER BY id DESC LIMIT ?", (limit,)
+            "SELECT * FROM snapshots WHERE film_id = ? ORDER BY id DESC LIMIT ?",
+            (film_id, limit),
         ).fetchall()
 
 
@@ -172,11 +201,26 @@ def sessions_first_seen_in(snapshot_id: int) -> list[sqlite3.Row]:
         ).fetchall()
 
 
-def is_first_ever_snapshot(snapshot_id: int) -> bool:
-    """True for the very first sweep, where every session is trivially new."""
+def is_first_snapshot_for_film(snapshot_id: int, film_id: str) -> bool:
+    """True for a film's first ever sweep, where every session is trivially new.
+
+    Per film, not per database: adding a film to the watch list would otherwise
+    fire a "new session" alert for every session it has free, all at once.
+    """
     with connect() as conn:
-        row = conn.execute("SELECT MIN(id) AS first FROM snapshots").fetchone()
+        row = conn.execute(
+            "SELECT MIN(id) AS first FROM snapshots WHERE film_id = ?",
+            (film_id,)).fetchone()
     return row is not None and row["first"] == snapshot_id
+
+
+def latest_full_snapshot_for(film_id: str) -> sqlite3.Row | None:
+    """The newest sweep of this film that covered its whole schedule."""
+    rows = latest_snapshots(12, film_id)
+    if not rows:
+        return None
+    widest = max(r["showtime_count"] for r in rows)
+    return next((r for r in rows if r["showtime_count"] >= widest * 0.75), rows[0])
 
 
 def latest_full_snapshot() -> sqlite3.Row | None:

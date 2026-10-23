@@ -14,19 +14,26 @@ from datetime import datetime, timezone
 
 from . import health, notify
 from .config import SEAT_STATE, TZ, booking_url
+from .films import load as load_films
 from .scrape import sweep
 
 
-def load_state() -> dict:
+def _state_path(film_id: str):
+    """One baseline per film: a shared file would diff films against each other."""
+    return SEAT_STATE.with_name(f"seats-{film_id}.json")
+
+
+def load_state(film_id: str) -> dict:
     try:
-        return json.loads(SEAT_STATE.read_text())
+        return json.loads(_state_path(film_id).read_text())
     except Exception:
         return {}
 
 
-def save_state(state: dict) -> None:
-    SEAT_STATE.parent.mkdir(parents=True, exist_ok=True)
-    SEAT_STATE.write_text(json.dumps(state, indent=1, sort_keys=True) + "\n")
+def save_state(state: dict, film_id: str) -> None:
+    path = _state_path(film_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=1, sort_keys=True) + "\n")
 
 
 def build_state(reports) -> dict:
@@ -102,19 +109,20 @@ def main() -> None:
     args = parser.parse_args()
 
     health.claim_single_instance()
-    with health.guard("sweep"):
-        reports, summary = asyncio.run(sweep(verbose=False))
+    film = load_films()[0]
+    with health.guard(f"sweep:{film.id}"):
+        reports, summary = asyncio.run(sweep(film.id, verbose=False))
 
     current = build_state(reports)
-    previous = load_state()
+    previous = load_state(film.id)
     freed, added = diff(previous, current)
 
     if warnings := summary["warnings"]:
-        health.report_failure("schema", "Sweep completed but the data did not look "
+        health.report_failure(f"schema:{film.id}", "Sweep completed but the data did not look "
                               "the way it should:\n" + "\n".join(f"• {w}" for w in warnings))
     else:
-        health.report_recovery("schema")
-    health.report_recovery("sweep")
+        health.report_recovery(f"schema:{film.id}")
+    health.report_recovery(f"sweep:{film.id}")
 
     print(f"{summary['showtimes']} sessions, {summary['bookable_total']} bookable seat(s); "
           f"{sum(len(v) for v in freed.values())} newly freed, {len(added)} new session(s)")
@@ -126,7 +134,7 @@ def main() -> None:
     if freed or added:
         announce(freed, added, current)
 
-    save_state(current)
+    save_state(current, film.id)
     health.write_heartbeat("ok", showtimes=summary["showtimes"],
                            bookable=summary["bookable_total"])
     health.maybe_send_digest(

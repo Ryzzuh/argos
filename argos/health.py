@@ -154,7 +154,8 @@ def check_heartbeat() -> int:
         mins = int(age.total_seconds() // 60)
         report_failure(
             "watchdog",
-            f"No sweep for {mins} min (last outcome: `{beat.get('outcome')}` "
+            f"No sweep for {mins} min (last outcome: `{beat.get('outcome')}`"
+            f"{', film ' + beat['film_id'] if beat.get('film_id') else ''} "
             f"at {_local(datetime.fromisoformat(beat['at']))}).\n"
             "The monitor is not running — laptop asleep, or the launchd agent was unloaded.",
         )

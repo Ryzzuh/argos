@@ -1,0 +1,12 @@
+# Films Argos watches.
+#
+# Find an id with:  uv run python -m argos.films
+# The id is the only thing that identifies a presentation - the slug in a film
+# URL is decorative. HO00000547 is the IMAX 70mm Odyssey; HO00000546 is the 4K
+# Laser one, which is a different film as far as booking is concerned.
+
+[[film]]
+id = "HO00000547"
+name = "The Odyssey (IMAX 70mm)"
+# How far ahead the 10-minute sweep looks. The 3-hourly sweep always does all.
+within_days = 14

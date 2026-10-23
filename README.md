@@ -112,6 +112,7 @@ uv run python -m argos.watch         # sweep, diff, alert, re-render
 uv run python -m argos.health        # watchdog: is the monitor alive?
 uv run python -m argos.cloud         # stateless variant (see the cloud section)
 uv run python -m argos.stats         # where the seats actually were
+uv run python -m argos.films         # the watch list (--available to find ids)
 ```
 
 | Flag | Effect |
@@ -156,23 +157,40 @@ Check with `launchctl list | grep argos`; logs land in `data/*.log`.
 | `IMAX_BROWSER_CHANNEL` | `chrome` | empty string uses Playwright's bundled Chromium |
 | `IMAX_SOURCE` | hostname | label appended to every alert, so you can tell machines apart |
 
-## Pointing it at something else
+## Choosing what to watch
 
-Set `IMAX_FILM_ID`, or pass `--film-id`. To find one:
+Films live in `films.toml`, so changing them means editing a file rather than a
+module — which matters because launchd agents inherit their environment at load
+time, so a change to `IMAX_FILM_ID` does nothing until all three are reloaded.
 
-```bash
-uv run python -c "
-import asyncio; from argos.api import Ocapi
-async def main():
-    async with Ocapi() as api:
-        for f in await api.films(): print(f['id'], f['title']['text'])
-asyncio.run(main())"
+```toml
+[[film]]
+id = "HO00000547"
+name = "The Odyssey (IMAX 70mm)"
+within_days = 14      # scope for the 10-minute sweep; the 3-hourly one does all
 ```
 
-Three constants in `argos/config.py` are specific to this film and auditorium and
-will produce drift warnings until you update them: `FILM_SLUG`,
-`EXPECTED_LAYOUT_ID` and `EXPECTED_SEAT_COUNT`. That is the intended behaviour —
-see below — but it is noisy if you ignore it.
+Add a second `[[film]]` block to watch more than one. To find an id:
+
+```bash
+uv run python -m argos.films --available    # every film at the site
+uv run python -m argos.films                # the current watch list
+```
+
+A film with no sessions in its window yet — advance booking not open — is a
+normal state, reported once per run and never alerted on.
+
+`EXPECTED_LAYOUT_ID` and `EXPECTED_SEAT_COUNT` in `argos/config.py` describe the
+auditorium rather than the film, so they hold for anything at this cinema. A
+film on another screen would raise a drift warning, which is the intended
+behaviour.
+
+### Rate limits set the ceiling
+
+Films sweep sequentially through one client so the limiter stays accurate. A
+full sweep is roughly 80 requests per film against a 41-per-minute window, so
+two films take about six minutes and three about nine. `argos.films` warns when
+a watch list cannot finish inside the 10-minute schedule.
 
 For a **different cinema**, `WEB_BASE` and `API_BASE` need changing too. Other
 Vista deployments very likely expose the same OCAPI shape, but none have been

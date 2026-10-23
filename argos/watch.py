@@ -13,6 +13,7 @@ from datetime import datetime
 
 from . import health, notify, report, store
 from .config import ALERT_STATE, TZ, booking_url
+from .films import Film, cadence_warning, load as load_films
 from .scrape import sweep_and_persist
 
 
@@ -28,14 +29,14 @@ def _save_state(state: dict) -> None:
     ALERT_STATE.write_text(json.dumps(state, indent=2, default=str))
 
 
-def find_new_seats() -> dict[str, set[str]]:
+def find_new_seats(film_id: str) -> dict[str, set[str]]:
     """Bookable seats present in the newest snapshot but not the one before.
 
     Only showtimes appearing in *both* snapshots are compared, so a narrow
     watchlist run followed by a full sweep doesn't report every previously
     unchecked session as a new opening.
     """
-    snaps = store.latest_snapshots(2)
+    snaps = store.latest_snapshots(2, film_id)
     if len(snaps) < 2:
         return {}
 
@@ -53,7 +54,7 @@ def find_new_seats() -> dict[str, set[str]]:
     return new
 
 
-def find_new_sessions() -> list:
+def find_new_sessions(film_id: str) -> list:
     """Screenings added to the schedule since the last sweep, with seats free.
 
     These are invisible to the seat diff: a session that did not exist before
@@ -62,9 +63,9 @@ def find_new_sessions() -> list:
     sold-out run is the likeliest way a ticket becomes available at all, so it
     gets its own detector.
     """
-    snaps = store.latest_snapshots(1)
-    if not snaps or store.is_first_ever_snapshot(snaps[0]["id"]):
-        return []                       # first run: everything is trivially new
+    snaps = store.latest_snapshots(1, film_id)
+    if not snaps or store.is_first_snapshot_for_film(snaps[0]["id"], film_id):
+        return []            # a film's first sweep: everything is trivially new
     return [r for r in store.sessions_first_seen_in(snaps[0]["id"]) if r["bookable"]]
 
 
@@ -87,21 +88,21 @@ def _describe(showtime_id: str, seat_ids: set[str], snap: int | None = None) -> 
             f"[Book now]({booking_url(showtime_id)})")
 
 
-def alert_new_sessions(sessions: list) -> None:
+def alert_new_sessions(sessions: list, title: str | None = None) -> None:
     blocks = []
     for r in sessions:
         dt = datetime.fromisoformat(r["starts_at"]).astimezone(TZ)
         blocks.append(f"*{dt:%a %-d %b, %-I:%M%p}* — {r['bookable']} of "
                       f"{r['total']} seats free\n[Book now]({booking_url(r['id'])})")
     text = (f"🆕 *{len(sessions)} new session"
-            f"{'' if len(sessions) == 1 else 's'} added* — THE ODYSSEY, IMAX 70mm\n\n"
-            + "\n\n".join(blocks))
+            f"{'' if len(sessions) == 1 else 's'} added* — "
+            f"{title or 'IMAX Melbourne'}\n\n" + "\n\n".join(blocks))
     if not notify.send(text, disable_preview=False):
         health.log_error(f"could not deliver new-session alert: {text[:120]}")
 
 
 def alert(new: dict[str, set[str]], snap: int | None = None,
-          *, replay: bool = False) -> None:
+          *, replay: bool = False, title: str | None = None) -> None:
     total = sum(len(v) for v in new.values())
     blocks = [_describe(sid, seats, snap) for sid, seats in new.items()]
     if replay:
@@ -110,7 +111,8 @@ def alert(new: dict[str, set[str]], snap: int | None = None,
                 f"one looks like. These seats are not necessarily still free.\n\n")
         tail = ""
     else:
-        head = f"🎟 *{total} seat{'' if total == 1 else 's'} just opened* — THE ODYSSEY, IMAX 70mm\n\n"
+        head = (f"🎟 *{total} seat{'' if total == 1 else 's'} just opened* — "
+                f"{title or 'IMAX Melbourne'}\n\n")
         tail = "\n\n_Seats go fast; this is a notification, not a hold._"
     text = head + "\n\n".join(blocks) + tail
     if not notify.send(text, disable_preview=False):
@@ -126,6 +128,8 @@ def main() -> None:
     parser.add_argument("--force-alert", action="store_true",
                         help="send an alert for whatever is currently free, to test the path")
     parser.add_argument("--no-report", action="store_true")
+    parser.add_argument("--film-id", default=None,
+                        help="watch just this film, ignoring films.toml")
     parser.add_argument("--replay", type=int, metavar="SNAPSHOT",
                         help="re-send the alert for a past snapshot, to verify "
                              "formatting and delivery without waiting for a release")
@@ -144,45 +148,68 @@ def main() -> None:
             print(f"replayed snapshot #{args.replay} to Telegram")
         return
 
-    with health.guard("sweep"):
-        summary = asyncio.run(sweep_and_persist(verbose=False,
-                                                within_days=args.within_days))
+    films = ([Film(id=args.film_id, name=args.film_id)] if args.film_id
+             else load_films())
+    if warning := cadence_warning(films):
+        health.log_error(warning)
 
-    fresh_sessions = find_new_sessions()
+    totals = []
+    for film in films:
+        summary = sweep_one(film, args)
+        totals.append((film, summary))
+
+    for film, summary in totals:
+        report_film(film, summary, args)
+    if not args.no_report:
+        report.main()
+
+    alive = ", ".join(f"{f.name}: {s['bookable_total']}" for f, s in totals)
+    health.maybe_send_digest(f"Bookable seats — {alive}. Monitor running normally.")
+    return
+
+
+def sweep_one(film: Film, args) -> dict:
+    """One film's sweep. Each gets its own guard so one failing does not stop
+    the rest of the watch list being checked."""
+    within = args.within_days if args.within_days is not None else film.within_days
+    with health.guard(f"sweep:{film.id}"):
+        return asyncio.run(sweep_and_persist(
+            film.id, verbose=False, within_days=within))
+
+
+def report_film(film: Film, summary: dict, args) -> None:
+    if summary.get("nothing_in_scope"):
+        print(f"[{film.name}] nothing in scope — no sessions in the window yet")
+        return
+
+    fresh_sessions = find_new_sessions(film.id)
     if fresh_sessions:
-        print(f"{len(fresh_sessions)} newly added session(s) with seats free")
+        print(f"[{film.name}] {len(fresh_sessions)} newly added session(s) with seats free")
         if args.dry_run:
             for r in fresh_sessions:
                 print(f"  {r['starts_at']}  {r['bookable']}/{r['total']} free")
         else:
-            alert_new_sessions(fresh_sessions)
+            alert_new_sessions(fresh_sessions, film.name)
 
-    new = find_new_seats()
+    new = find_new_seats(film.id)
 
     if args.force_alert and not new:
         # Test the delivery path against whatever is genuinely free right now.
-        snap = store.latest_snapshots(1)[0]["id"]
-        new = store.bookable_seats_in(snap)
+        snaps = store.latest_snapshots(1, film.id)
+        if snaps:
+            new = store.bookable_seats_in(snaps[0]["id"])
 
     if new:
         total = sum(len(v) for v in new.values())
-        print(f"{total} newly bookable seat(s) across {len(new)} session(s)")
+        print(f"[{film.name}] {total} newly bookable seat(s) across {len(new)} session(s)")
         if args.dry_run:
             for sid, seats in new.items():
                 print("  " + _describe(sid, seats).replace("\n", " | "))
         else:
-            alert(new)
+            alert(new, title=film.name)
     else:
-        print(f"no change — {summary['bookable_total']} bookable seat(s) "
-              f"across {summary['showtimes']} session(s)")
-
-    if not args.no_report:
-        report.main()
-
-    health.maybe_send_digest(
-        f"{summary['bookable_total']} bookable seat(s) across "
-        f"{summary['showtimes']} sessions. Monitor is running normally."
-    )
+        print(f"[{film.name}] no change — {summary['bookable_total']} bookable "
+              f"seat(s) across {summary['showtimes']} session(s)")
 
 
 if __name__ == "__main__":

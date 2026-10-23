@@ -105,8 +105,12 @@ async def sweep(film_id: str = FILM_ID, *, verbose: bool = True,
             showtimes = [s for s in showtimes
                          if datetime.fromisoformat(s["schedule"]["startsAt"]) <= cutoff]
             if not showtimes:
-                raise SchemaDrift(
-                    f"no sessions within {within_days} days — nothing to watch")
+                # Normal, not drift: a film on the watch list may simply not
+                # have opened advance booking yet. Raising here would alert on
+                # every single run for as long as it stays that way.
+                if verbose:
+                    print(f"{title}: no sessions within {within_days} days")
+                return [], _empty_summary(title, film_id, len(dates))
 
         # Sessions that have already started cannot be booked.
         now = datetime.now(TZ)
@@ -137,13 +141,26 @@ async def sweep(film_id: str = FILM_ID, *, verbose: bool = True,
     return _finish(results, indexes, dates, title, film_id, throttled)
 
 
+def _empty_summary(title: str, film_id: str, dates: int) -> dict:
+    """A sweep that legitimately had nothing in scope to check."""
+    return {
+        "taken_at": datetime.now(timezone.utc).isoformat(),
+        "film_id": film_id, "title": title, "dates": dates,
+        "showtimes": 0, "bookable_total": 0, "sessions_with_bookable": 0,
+        "accessible_total": 0, "house_total": 0, "seat_total": 0,
+        "breakdown": {}, "partial": False, "failed_share": 0.0,
+        "throttled_requests": 0, "warnings": [], "transient": [],
+        "nothing_in_scope": True,
+    }
+
+
 def _finish(results, indexes, dates, title, film_id, throttled):
     """Validate a sweep's results and roll them up. Shared by the local sweep
     and the cloud runner, which persist very different things."""
     reports = [r for r in results if not isinstance(r, Exception)]
     failures = [r for r in results if isinstance(r, Exception)]
 
-    if failures and len(failures) / len(results) > MAX_FAILED_FRACTION:
+    if results and failures and len(failures) / len(results) > MAX_FAILED_FRACTION:
         raise SweepError(
             f"{len(failures)}/{len(results)} showtime lookups failed — "
             f"refusing to report a partial picture. First: {failures[0]}"
@@ -189,17 +206,29 @@ def _finish(results, indexes, dates, title, film_id, throttled):
 def persist(reports, summary):
     """Local mode: write the snapshot to SQLite and settle the alert state."""
     summary = dict(summary)
-    summary["snapshot_id"] = store.save_snapshot(reports, partial=summary["partial"])
-    (DATA / "last-sweep.json").write_text(json.dumps(summary, indent=2))
+    if summary.get("nothing_in_scope"):
+        # Nothing was checked, so there is nothing to snapshot or diff against.
+        health.write_heartbeat("ok", film_id=summary["film_id"], showtimes=0,
+                               bookable=0)
+        summary["snapshot_id"] = None
+        return summary
+    summary["snapshot_id"] = store.save_snapshot(
+        reports, film_id=summary["film_id"], partial=summary["partial"])
+    # Per film, plus the unsuffixed file so anything reading the old path still
+    # sees the most recent sweep.
+    blob = json.dumps(summary, indent=2)
+    (DATA / f"last-sweep-{summary['film_id']}.json").write_text(blob)
+    (DATA / "last-sweep.json").write_text(blob)
 
+    film = summary["film_id"]
     if drift := summary["warnings"]:
         health.report_failure(
-            "schema",
+            f"schema:{film}",
             "Sweep completed but the data did not look the way it should:\n"
             + "\n".join(f"• {w}" for w in drift),
         )
     else:
-        health.report_recovery("schema")
+        health.report_recovery(f"schema:{film}")
 
     # Only worth a human's attention once a meaningful slice of the schedule is
     # going unchecked; below that it is noise and goes to the log alone.
@@ -207,18 +236,18 @@ def persist(reports, summary):
         health.log_error(f"[transient] {note}")
     if summary.get("failed_share", 0) > NOISY_FAILURE_SHARE:
         health.report_failure(
-            "coverage",
+            f"coverage:{film}",
             f"{summary['transient'][0]} — enough of the schedule went unchecked "
             "that a release could have been missed.",
         )
     else:
-        health.report_recovery("coverage")
-    health.report_recovery("sweep")
+        health.report_recovery(f"coverage:{film}")
+    health.report_recovery(f"sweep:{film}")
     health.report_recovery("token")
 
     health.write_heartbeat(
-        "ok", snapshot_id=summary["snapshot_id"], showtimes=len(reports),
-        bookable=summary["bookable_total"],
+        "ok", snapshot_id=summary["snapshot_id"], film_id=film,
+        showtimes=len(reports), bookable=summary["bookable_total"],
     )
     return summary
 

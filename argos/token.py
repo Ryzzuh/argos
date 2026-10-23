@@ -18,8 +18,8 @@ import os
 import time
 from datetime import datetime, timezone
 
-from .config import (BROWSER_CHANNEL, CHROME_PROFILE, FILM_PAGE,
-                     TOKEN_CACHE, TZ)
+from .config import (BROWSER_CHANNEL, CHROME_PROFILE, TOKEN_CACHE,
+                     TOKEN_PAGE, TZ)
 from .health import TokenError
 
 # Refresh this far ahead of expiry so a long sweep can't run off the end.
@@ -70,7 +70,7 @@ def _mint_with(playwright, *, headless: bool):
         browser = playwright.chromium.launch(headless=True, **launch_kwargs)
         try:
             page = browser.new_page()
-            page.goto(FILM_PAGE, wait_until="domcontentloaded", timeout=45_000)
+            page.goto(TOKEN_PAGE, wait_until="domcontentloaded", timeout=45_000)
             return page.evaluate(_EXTRACT)
         finally:
             browser.close()
@@ -83,7 +83,7 @@ def _mint_with(playwright, *, headless: bool):
     )
     try:
         page = ctx.new_page()
-        page.goto(FILM_PAGE, wait_until="domcontentloaded", timeout=60_000)
+        page.goto(TOKEN_PAGE, wait_until="domcontentloaded", timeout=60_000)
         token = page.evaluate(_EXTRACT)
         if token is None:                      # give a challenge time to clear
             page.wait_for_timeout(8_000)
@@ -126,7 +126,7 @@ def get_token(*, force: bool = False) -> str:
             )
 
     raise TokenError(
-        "could not mint an OCAPI token from " + FILM_PAGE + "\n" + "\n".join(errors)
+        "could not mint an OCAPI token from " + TOKEN_PAGE + "\n" + "\n".join(errors)
     )
 
 

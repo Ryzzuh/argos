@@ -5,12 +5,14 @@ import json
 from datetime import datetime
 
 from . import store
+from .films import load as load_films
 from .config import DATA, REPORT_HTML, REPORT_MD, TZ, booking_url
 from .token import token_expiry
 
 
-def _load():
-    snap = store.latest_full_snapshot()
+def _load(film_id: str | None = None):
+    snap = (store.latest_full_snapshot_for(film_id) if film_id
+            else store.latest_full_snapshot())
     if snap is None:
         raise SystemExit("no snapshots yet — run `uv run python -m argos.scrape` first")
     rows = store.snapshot_rows(snap["id"])
@@ -23,10 +25,17 @@ def _load():
     for v in seats.values():
         v.sort(key=lambda t: (t[0], int(t[1]) if str(t[1]).isdigit() else 0))
 
-    try:
-        summary = json.loads((DATA / "last-sweep.json").read_text())
-    except Exception:
-        summary = {}
+    # Per film: a shared summary file would be overwritten by whichever film
+    # happened to sweep last.
+    candidates = ([DATA / f"last-sweep-{film_id}.json"] if film_id else []) + \
+                 [DATA / "last-sweep.json"]
+    summary = {}
+    for path in candidates:
+        try:
+            summary = json.loads(path.read_text())
+            break
+        except Exception:
+            continue
     return snap, rows, seats, summary
 
 
@@ -233,8 +242,9 @@ footer code{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--i
 """
 
 
-def render_html() -> str:
-    snap, rows, seats, summary = _load()
+def _film_section(film_id: str | None = None) -> tuple[str, str, str]:
+    """Returns (heading, sub-line, body html) for one film."""
+    snap, rows, seats, summary = _load(film_id)
     taken = datetime.fromisoformat(snap["taken_at"]).astimezone(TZ)
     now = datetime.now(TZ)
     open_rows = [r for r in rows if r["bookable"]]
@@ -293,22 +303,10 @@ def render_html() -> str:
 
     heading = _esc(title.title().replace("Imax", "IMAX").replace("70Mm", "70mm"))
 
-    return f"""<meta charset="utf-8">
-<title>Odyssey 70mm Seat Watch</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap">
-<style>{CSS}</style>
-<div class="wrap">
-  <header>
-    <span class="eyebrow">IMAX Melbourne · Screen 1 · 70mm film</span>
-    <h1>{heading}</h1>
-    <div class="sprocket"></div>
-    <p class="sub">Last checked {taken:%a %-d %b, %-I:%M%p} · snapshot #{snap['id']} ·
-      {len(rows)} sessions counted from the live seat map, not the site's sold-out flag.</p>
-  </header>
-
-  {verdict}
+    sub = (f"Last checked {taken:%a %-d %b, %-I:%M%p} · snapshot #{snap['id']} · "
+           f"{len(rows)} sessions counted from the live seat map, not the site's "
+           "sold-out flag.")
+    body = f"""{verdict}
 
   <div class="tiles">{tile_html}</div>
 
@@ -325,13 +323,43 @@ def render_html() -> str:
     </table></div>
   </section>
 
+  {warn}
+"""
+    return heading, sub, body
+
+
+def render_html() -> str:
+    films = load_films()
+    sections = []
+    for film in films:
+        try:
+            heading, sub, body = _film_section(film.id)
+        except SystemExit:
+            continue                      # never swept yet; nothing to render
+        sections.append(
+            f'<section class="film"><header><span class="eyebrow">IMAX Melbourne '
+            f'· Screen 1 · 70mm film</span><h1>{heading}</h1>'
+            f'<div class="sprocket"></div><p class="sub">{sub}</p></header>{body}</section>')
+
+    if not sections:
+        sections = ["<p class=\"note\">No sweeps recorded yet.</p>"]
+
+    return f"""<meta charset="utf-8">
+<title>IMAX Seat Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>{CSS}
+.film{{display:flex; flex-direction:column; gap:28px; padding-bottom:34px}}
+.film + .film{{border-top:1px solid var(--rule); padding-top:40px}}
+</style>
+<div class="wrap">
+  {"".join(sections)}
   <footer>
     <div class="sprocket"></div>
-    <p>Read from Vista Movie XChange OCAPI with plain authenticated GETs — no sign-in, no
-      order, no seat holds. The film is <code>HO00000547</code>; the slug in the website
-      URL is decorative, which is how <code>HO00000545</code> (a different film entirely)
-      ends up showing an empty date picker.</p>
-    {warn}
+    <p>Read from Vista Movie XChange OCAPI with plain authenticated GETs — no sign-in,
+      no order, no seat holds. Films are identified by id; the slug in a booking URL is
+      decorative and ignored.</p>
   </footer>
 </div>
 """

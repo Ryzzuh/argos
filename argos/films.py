@@ -1,0 +1,105 @@
+"""The watch list.
+
+Which films to monitor lives in films.toml rather than in code, so changing it
+does not mean editing a module and reloading three launchd agents. Read-only:
+you edit the file, nothing writes it.
+"""
+from __future__ import annotations
+
+import argparse
+import asyncio
+import tomllib
+from dataclasses import dataclass
+
+from .config import FILM_ID, FILMS_FILE
+from .health import ArgosError
+
+# A full sweep is roughly this many requests per film, against a limiter that
+# allows 41 per rolling minute. Used to warn when a watch list cannot finish
+# inside its own schedule.
+REQUESTS_PER_FILM = 80
+WINDOW_LIMIT = 35
+
+
+@dataclass(frozen=True)
+class Film:
+    id: str
+    name: str
+    within_days: int | None = 14
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.id})"
+
+
+def load(path=None) -> list[Film]:
+    """The configured watch list, or the single fallback film if there is none."""
+    path = path or FILMS_FILE
+    if not path.exists():
+        return [Film(id=FILM_ID, name=FILM_ID)]
+
+    try:
+        raw = tomllib.loads(path.read_text())
+    except tomllib.TOMLDecodeError as exc:
+        raise ArgosError(f"{path.name} is not valid TOML: {exc}") from exc
+
+    films = []
+    for entry in raw.get("film", []):
+        if not entry.get("id"):
+            raise ArgosError(f"{path.name} has a [[film]] entry with no id")
+        films.append(Film(
+            id=entry["id"],
+            name=entry.get("name") or entry["id"],
+            within_days=entry.get("within_days", 14),
+        ))
+
+    if not films:
+        raise ArgosError(
+            f"{path.name} lists no films. Add a [[film]] entry, or delete the "
+            "file to fall back to IMAX_FILM_ID."
+        )
+    return films
+
+
+def cadence_warning(films: list[Film], interval_minutes: int = 10) -> str | None:
+    """Whether this many films can be swept inside the watch interval."""
+    windows = (len(films) * REQUESTS_PER_FILM) / WINDOW_LIMIT
+    if windows > interval_minutes:
+        return (f"{len(films)} films need roughly {windows:.0f} minutes per full "
+                f"sweep against the API's rate limit, which does not fit a "
+                f"{interval_minutes}-minute schedule. Reduce the list, or widen "
+                f"the interval in bin/install-agents.sh.")
+    return None
+
+
+async def _list_available() -> None:
+    from .api import Ocapi
+    async with Ocapi() as api:
+        films = await api.films()
+    watched = {f.id for f in load()}
+    print(f"{len(films)} films at this site (* = currently watched):\n")
+    for f in sorted(films, key=lambda x: x["title"]["text"]):
+        mark = "*" if f["id"] in watched else " "
+        print(f" {mark} {f['id']}  {f['title']['text']}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Show the watch list")
+    parser.add_argument("--available", action="store_true",
+                        help="list every film at the site, to find an id")
+    args = parser.parse_args()
+
+    if args.available:
+        asyncio.run(_list_available())
+        return
+
+    films = load()
+    print(f"watching {len(films)} film(s) from {FILMS_FILE.name}:")
+    for f in films:
+        scope = f"next {f.within_days} days" if f.within_days else "all dates"
+        print(f"  {f.id}  {f.name}  [{scope}]")
+    if warning := cadence_warning(films):
+        print(f"\n! {warning}")
+
+
+if __name__ == "__main__":
+    main()
