@@ -14,7 +14,7 @@ from datetime import datetime
 
 from . import health, notify, report, store, timing
 from .config import ALERT_STATE, TZ, booking_url
-from .films import Film, cadence_warning, load as load_films
+from .films import Film, load as load_films
 from .scrape import sweep_and_persist
 from .zone import Zone, effective, format_runs, newly_qualifying, qualify
 
@@ -177,9 +177,6 @@ def main() -> None:
         print("no films enabled in films.toml — nothing to monitor")
         health.write_heartbeat("ok", showtimes=0, bookable=0, films=0)
         return
-    if warning := cadence_warning(films):
-        health.log_error(warning)
-
     started = time.monotonic()
     totals, failed, costs = [], [], []
     for film in films:

@@ -16,13 +16,6 @@ from . import zone as zone_mod
 from .health import ArgosError
 from .zone import Zone
 
-# A full sweep is roughly this many requests per film, against a limiter that
-# allows 41 per rolling minute. Used to warn when a watch list cannot finish
-# inside its own schedule.
-REQUESTS_PER_FILM = 80
-WINDOW_LIMIT = 35
-
-
 @dataclass(frozen=True)
 class Film:
     id: str
@@ -123,17 +116,6 @@ def load(path=None, *, include_disabled: bool = False) -> list[Film]:
     return films if include_disabled else [f for f in films if f.enabled]
 
 
-def cadence_warning(films: list[Film], interval_minutes: int = 10) -> str | None:
-    """Whether this many films can be swept inside the watch interval."""
-    windows = (len(films) * REQUESTS_PER_FILM) / WINDOW_LIMIT
-    if windows > interval_minutes:
-        return (f"{len(films)} films need roughly {windows:.0f} minutes per full "
-                f"sweep against the API's rate limit, which does not fit a "
-                f"{interval_minutes}-minute schedule. Reduce the list, or widen "
-                f"the interval in bin/install-agents.sh.")
-    return None
-
-
 async def _list_available() -> None:
     from .api import Ocapi
     async with Ocapi() as api:
@@ -167,8 +149,6 @@ def main() -> None:
         print(f"          seats: {f.zone.describe() if f.zone else 'any bookable seat'}")
     if not active:
         print("\n! Every film is disabled — nothing will be monitored.")
-    if warning := cadence_warning(active):
-        print(f"\n! {warning}")
 
 
 if __name__ == "__main__":

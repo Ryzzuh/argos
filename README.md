@@ -194,11 +194,12 @@ auditorium rather than the film, so they hold for anything at this cinema. A
 film on another screen would raise a drift warning, which is the intended
 behaviour.
 
-`within_days = "all"` (or `0`) removes the limit. Mind the cost: a full sweep is
-roughly 80 requests, so an unlimited 10-minute sweep takes three to four minutes
-against the rate limit rather than one, and it makes the 3-hourly job redundant
-for alerting. `argos.films` warns if a watch list can no longer finish inside its
-schedule.
+`within_days = "all"` (or `0`) removes the limit. Mind the cost: a film with many
+sessions is roughly one request per session on every sweep, so an unlimited
+10-minute sweep of a big schedule takes minutes rather than seconds, and makes the
+3-hourly job redundant for alerting. Argos does not try to predict whether a watch
+list fits its schedule; it measures, and alerts when sweeps stop fitting (see
+below).
 
 ### Films that have not started
 
@@ -284,10 +285,14 @@ event, and the replay says how rare.
 
 ### Rate limits set the ceiling
 
-Films sweep sequentially through one client so the limiter stays accurate. A
-full sweep is roughly 80 requests per film against a 41-per-minute window, so
-two films take about six minutes and three about nine. `argos.films` warns when
-a watch list cannot finish inside the 10-minute schedule.
+Films sweep sequentially through one client so the limiter stays accurate. What a
+sweep costs depends on the film: a dormant one is two requests, a windowed one is
+its in-window sessions, an unlimited one with a long schedule is a request per
+session. A small sweep fits in the limiter's first window and finishes in seconds;
+a large one is throttled for minutes. Rather than estimate this, Argos records
+how long each sweep actually took and alerts when they stop fitting the schedule
+(see "Sweeps that no longer fit their schedule" above). `uv run python -m
+argos.timing` shows the recent runs.
 
 For a **different cinema**, `WEB_BASE` and `API_BASE` need changing too. Other
 Vista deployments very likely expose the same OCAPI shape, but none have been
