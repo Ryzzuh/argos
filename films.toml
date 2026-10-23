@@ -20,7 +20,8 @@ together = 2          # at least this many adjacent free seats, all in the band
 id = "HO00000547"
 name = "The Odyssey (IMAX 70mm)"
 enabled = true
-# How far ahead the 10-minute sweep looks. The 3-hourly sweep always does all.
+# How far ahead the 10-minute sweep looks, in days. "all" (or 0) for no limit.
+# The 3-hourly sweep always covers every date regardless.
 within_days = 14
 
 # Parked: kept here with its settings, but not monitored. Flip to true to

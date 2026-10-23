@@ -170,7 +170,7 @@ time, so a change to `IMAX_FILM_ID` does nothing until all three are reloaded.
 id = "HO00000547"
 name = "The Odyssey (IMAX 70mm)"
 enabled = true        # false parks it: kept with its settings, not monitored
-within_days = 14      # scope for the 10-minute sweep; the 3-hourly one does all
+within_days = 14      # days ahead for the 10-minute sweep; "all" or 0 means no limit
 ```
 
 Add a second `[[film]]` block to watch more than one. `enabled` defaults to
@@ -192,6 +192,12 @@ normal state, reported once per run and never alerted on.
 auditorium rather than the film, so they hold for anything at this cinema. A
 film on another screen would raise a drift warning, which is the intended
 behaviour.
+
+`within_days = "all"` (or `0`) removes the limit. Mind the cost: a full sweep is
+roughly 80 requests, so an unlimited 10-minute sweep takes three to four minutes
+against the rate limit rather than one, and it makes the 3-hourly job redundant
+for alerting. `argos.films` warns if a watch list can no longer finish inside its
+schedule.
 
 ### Choosing where to sit
 

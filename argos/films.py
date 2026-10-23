@@ -46,6 +46,22 @@ def _reject_unknown(table: dict, allowed: set, where: str) -> None:
                          f"allowed are {sorted(allowed)}")
 
 
+def _window(value, where: str) -> int | None:
+    """within_days as the sweep wants it: a number of days, or None for no limit.
+
+    TOML has no null, so "no limit" is spelled `"all"` or `0`. Anything else that
+    is not a positive whole number is an error rather than a silent default: a
+    window that quietly filters out every session looks exactly like a sold-out
+    season.
+    """
+    if value in ("all", 0):
+        return None
+    if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+        return value
+    raise ArgosError(f'{where}: within_days must be a number of days, or "all" '
+                     f"(or 0) for no limit - got {value!r}")
+
+
 def load(path=None, *, include_disabled: bool = False) -> list[Film]:
     """The watch list.
 
@@ -76,7 +92,7 @@ def load(path=None, *, include_disabled: bool = False) -> list[Film]:
         films.append(Film(
             id=entry["id"],
             name=entry.get("name") or entry["id"],
-            within_days=entry.get("within_days", 14),
+            within_days=_window(entry.get("within_days", 14), label),
             enabled=bool(entry.get("enabled", True)),
             zone=zone_mod.resolve(default_seats, entry.get("seats"),
                                   f"{label} seats"),
