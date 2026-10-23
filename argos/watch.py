@@ -9,9 +9,10 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import time
 from datetime import datetime
 
-from . import health, notify, report, store
+from . import health, notify, report, store, timing
 from .config import ALERT_STATE, TZ, booking_url
 from .films import Film, cadence_warning, load as load_films
 from .scrape import sweep_and_persist
@@ -179,10 +180,17 @@ def main() -> None:
     if warning := cadence_warning(films):
         health.log_error(warning)
 
-    totals, failed = [], []
+    started = time.monotonic()
+    totals, failed, costs = [], [], []
     for film in films:
+        film_started = time.monotonic()
         try:
-            totals.append((film, sweep_one(film, args)))
+            summary = sweep_one(film, args)
+            totals.append((film, summary))
+            costs.append({"id": film.id, "name": film.name,
+                          "seconds": round(time.monotonic() - film_started, 1),
+                          "requests": summary.get("requests"),
+                          "throttled": summary.get("throttled_requests")})
         except SystemExit:
             # guard() has already reported it and exits the process; letting that
             # propagate would leave every later film unchecked.
@@ -193,13 +201,26 @@ def main() -> None:
     if not args.no_report:
         report.main()
 
+    # Measure only a run shaped like the scheduled jobs. Dry runs and one-off
+    # overrides cost something different and would muddy the history.
+    if totals and not failed and not _adhoc(args):
+        timing.record_and_check("full" if args.full else "watch",
+                                time.monotonic() - started, costs)
+
     alive = ", ".join(
         f"{f.name}: {_idle_reason(s)}" if s.get("nothing_in_scope")
         else f"{f.name}: {s['bookable_total']}" for f, s in totals)
     if totals:
-        health.maybe_send_digest(f"Bookable seats — {alive}. Monitor running normally.")
+        health.maybe_send_digest(
+            f"Bookable seats — {alive}. Monitor running normally. "
+            f"{timing.summary_line()}".rstrip())
     if failed:
         raise SystemExit(1)      # after the films that did work have been reported
+
+
+def _adhoc(args) -> bool:
+    """A run the scheduled jobs would not make: a test or a one-off override."""
+    return bool(args.dry_run or args.film_id or args.within_days is not None)
 
 
 def sweep_one(film: Film, args) -> dict:

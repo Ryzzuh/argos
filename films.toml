@@ -19,7 +19,7 @@ together = 2          # at least this many adjacent free seats, all in the band
 [[film]]
 id = "HO00000547"
 name = "The Odyssey (IMAX 70mm)"
-enabled = true
+enabled = false
 # How far ahead the 10-minute sweep looks, in days. "all" (or 0) for no limit.
 # The 3-hourly sweep always covers every date regardless.
 within_days = 14
@@ -29,7 +29,7 @@ within_days = 14
 [[film]]
 id = "HO00000610"
 name = "Dune: Part Three (IMAX 70mm)"
-enabled = false
+enabled = true
 within_days = 0        # every date
 # Its first session is 16 Dec. Until it is this close, the film costs two
 # requests per sweep (the film list and the date list) instead of one per date

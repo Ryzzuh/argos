@@ -83,6 +83,17 @@ EXPECTED_SEAT_COUNT = 459
 
 HEARTBEAT_STALE_MINUTES = 90
 
+# How often each scheduled job runs. bin/install-agents.sh carries the same two
+# numbers; a test keeps them in step. The watch interval is the budget for every
+# run, full sweeps included, because the jobs share a lock: while any sweep is
+# running the next scheduled one skips its turn, so a full sweep that outlasts the
+# watch interval costs the sniping loop a tick.
+WATCH_INTERVAL_SECONDS = 600
+FULL_INTERVAL_SECONDS = 10800
+# A run using more than this share of the budget leaves no headroom for a slow
+# patch of rate limiting.
+TIMING_WARN_FRACTION = 0.7
+
 
 def booking_url(showtime_id: str) -> str:
     """Deep-link straight to the seat picker for a showtime."""

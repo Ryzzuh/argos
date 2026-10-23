@@ -85,6 +85,7 @@ class Ocapi:
         self._refreshed = False
         self._lock = asyncio.Lock()
         self.throttled = 0
+        self.requests = 0      # every HTTP attempt, retries and 429s included
 
     async def __aenter__(self) -> "Ocapi":
         if self._token is None:
@@ -117,6 +118,7 @@ class Ocapi:
             await self._limiter.acquire()
             try:
                 async with self._sem:
+                    self.requests += 1
                     resp = await self._client.get(
                         path, params=params,
                         headers={"Authorization": f"Bearer {self._token}"},

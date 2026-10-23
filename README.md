@@ -114,6 +114,7 @@ uv run python -m argos.cloud         # stateless variant (see the cloud section)
 uv run python -m argos.stats         # where the seats actually were
 uv run python -m argos.films         # the watch list (--available to find ids)
 uv run python -m argos.zone          # check a seat zone against the room and history
+uv run python -m argos.timing        # recent sweep durations against the schedule
 ```
 
 | Flag | Effect |
@@ -347,6 +348,7 @@ quietly returning nothing:
 - **coverage loss** — more than 10% of sessions unchecked; above 20% the sweep
   refuses to report a partial picture at all
 - a stale *or persistently failing* heartbeat, caught by the separate watchdog
+- **sweeps outgrowing their schedule** — see below
 
 A single failed lookup is logged, not alerted: it is a network blip, and paging
 someone about it teaches them to ignore the channel that also carries the seat
@@ -354,6 +356,42 @@ alerts. Repeat failures re-alert at most hourly, recovery is announced
 explicitly, and a daily check-in confirms the monitor is alive so silence is
 never ambiguous. If Telegram itself is unreachable it falls back to a macOS
 notification and `data/errors.log`, then reports the gap once it recovers.
+
+### Sweeps that no longer fit their schedule
+
+The scheduled jobs share a lock, so while one sweep is running the next one prints
+"another sweep is already running" to a log and skips its turn. Nothing else
+notices: the heartbeat stays fresh and the watchdog only fires after ninety
+minutes. A monitor whose sweeps have grown past its schedule just gets slower, and
+alerts arrive late.
+
+So every scheduled-shaped run records how long it took and how many requests it
+made, and Telegram hears about it when the margin has gone:
+
+- **overran** — the latest run took longer than the watch interval. A tick was
+  skipped.
+- **tight** — the last three watch runs each used more than 70% of the interval.
+  One slow patch of rate limiting from overrunning.
+
+The budget is the watch interval for *every* kind of run, full sweeps included.
+A full sweep only starts every three hours, but while it runs it blocks the
+sniping loop, so one that outlasts the watch interval costs it a tick. Recovery
+is announced on the first run back under 70%.
+
+```bash
+uv run python -m argos.timing    # the last few runs and where each sits against the budget
+```
+
+This is measured, not predicted. A prediction has to reproduce the rate limiter,
+and gets it wrong in both directions: a small sweep fits inside the limiter's
+first window and finishes in seconds, while a large one is throttled for minutes.
+Dry runs and one-off overrides (`--dry-run`, `--film-id`, `--within-days`) are not
+recorded, since they cost something different from the scheduled jobs. The daily
+check-in also reports the latest durations, so a healthy monitor says how much
+slack it has.
+
+The interval lives in two places, `bin/install-agents.sh` and `argos/config.py`,
+and a test fails if they drift apart.
 
 ## Why this does not run in the cloud
 

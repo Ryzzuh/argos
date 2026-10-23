@@ -131,7 +131,8 @@ async def sweep(film_id: str = FILM_ID, *, verbose: bool = True,
                     "- not something to report as 'no seats'.")
             if verbose:
                 print(f"{title}: no sessions on sale yet")
-            return [], _empty_summary(title, film_id, 0, reason="no sessions on sale")
+            return [], _empty_summary(title, film_id, 0, reason="no sessions on sale",
+                                      requests=api.requests)
 
         # Decide from the date list alone, before looking up any showtimes.
         today = datetime.now(TZ).date()
@@ -151,7 +152,7 @@ async def sweep(film_id: str = FILM_ID, *, verbose: bool = True,
                          else f", outside the {within_days}-day window"))
             return [], _empty_summary(title, film_id, len(dates), opens_on=opens_on,
                                       days_away=days_away, wakes_on=wakes_on,
-                                      reason="not yet showing")
+                                      reason="not yet showing", requests=api.requests)
 
         # A narrow watchlist run trusts the cache to stay inside the rate-limit
         # budget; a full sweep always re-reads, so an added screening surfaces
@@ -191,14 +192,14 @@ async def sweep(film_id: str = FILM_ID, *, verbose: bool = True,
                 return exc
 
         results = await asyncio.gather(*(one(s) for s in showtimes))
-        throttled = api.throttled
+        throttled, requests = api.throttled, api.requests
 
-    return _finish(results, indexes, dates, title, film_id, throttled)
+    return _finish(results, indexes, dates, title, film_id, throttled, requests)
 
 
 def _empty_summary(title: str, film_id: str, dates: int, *, opens_on: str | None = None,
                    days_away: int | None = None, wakes_on: str | None = None,
-                   reason: str = "") -> dict:
+                   reason: str = "", requests: int = 0) -> dict:
     """A sweep that legitimately had nothing in scope to check."""
     return {
         "taken_at": datetime.now(timezone.utc).isoformat(),
@@ -206,14 +207,14 @@ def _empty_summary(title: str, film_id: str, dates: int, *, opens_on: str | None
         "showtimes": 0, "bookable_total": 0, "sessions_with_bookable": 0,
         "accessible_total": 0, "house_total": 0, "seat_total": 0,
         "breakdown": {}, "partial": False, "failed_share": 0.0,
-        "throttled_requests": 0, "warnings": [], "transient": [],
+        "throttled_requests": 0, "requests": requests, "warnings": [], "transient": [],
         "nothing_in_scope": True,
         "opens_on": opens_on, "days_away": days_away, "wakes_on": wakes_on,
         "reason": reason,
     }
 
 
-def _finish(results, indexes, dates, title, film_id, throttled):
+def _finish(results, indexes, dates, title, film_id, throttled, requests=0):
     """Validate a sweep's results and roll them up. Shared by the local sweep
     and the cloud runner, which persist very different things."""
     reports = [r for r in results if not isinstance(r, Exception)]
@@ -256,6 +257,7 @@ def _finish(results, indexes, dates, title, film_id, throttled):
         "partial": bool(failures),
         "failed_share": (len(failures) / len(results)) if results else 0.0,
         "throttled_requests": throttled,
+        "requests": requests,
         "warnings": drift,
         "transient": transient,
     }

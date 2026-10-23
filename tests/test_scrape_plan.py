@@ -49,6 +49,7 @@ LAYOUT = {"id": "L", "areas": [{"number": 1, "name": {"text": "Standard"}, "rows
 class FakeApi:
     """Complete enough to run a whole sweep, and counting what it was asked."""
     throttled = 0
+    requests = 0
 
     def __init__(self, dates, per_date=2):
         self._dates, self._per = dates, per_date
