@@ -141,7 +141,8 @@ def main() -> None:
         return
     film = films[0]
     with health.guard(f"sweep:{film.id}"):
-        reports, summary = asyncio.run(sweep(film.id, verbose=False))
+        reports, summary = asyncio.run(sweep(film.id, verbose=False,
+                                             lead_days=film.lead_days))
 
     current = build_state(reports)
     previous = load_state(film.id)

@@ -199,6 +199,39 @@ against the rate limit rather than one, and it makes the 3-hourly job redundant
 for alerting. `argos.films` warns if a watch list can no longer finish inside its
 schedule.
 
+### Films that have not started
+
+The date list is one request and says when a film first screens, so Argos decides
+before looking up any showtime. Set `lead_days` to begin watching only when the
+first session is that close:
+
+```toml
+[[film]]
+id = "HO00000610"
+name = "Dune: Part Three (IMAX 70mm)"
+within_days = 0       # every date...
+lead_days = 14        # ...but only from two weeks before the first session
+```
+
+Until then the film costs **two requests per sweep** (the film list and the date
+list) instead of one per date plus one per session. For a film with 18 dates and
+74 sessions that is 2 requests against 94, and the output says when it wakes:
+
+```
+not yet showing - first session 2026-12-16 (54 days away); watching starts 2026-12-02
+```
+
+This is independent of `within_days`, so it works for a film set to look at every
+date. Without `lead_days` a film is watched from the moment it has sessions, which
+is the right choice for something likely to sell out on release. Zero waits for the
+first day. A film already showing is never dormant.
+
+Showtimes are cached per date, so the 10-minute and 3-hourly sweeps, which ask for
+different sets of dates, no longer evict each other's cache. A listed film with no
+sessions on sale yet is reported as exactly that. It is only treated as a fault
+if it previously had upcoming sessions that have now vanished, which is either a
+pulled film or a broken query.
+
 ### Choosing where to sit
 
 A zone narrows alerts to seats you would actually take. It lives in the same file,

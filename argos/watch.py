@@ -193,7 +193,9 @@ def main() -> None:
     if not args.no_report:
         report.main()
 
-    alive = ", ".join(f"{f.name}: {s['bookable_total']}" for f, s in totals)
+    alive = ", ".join(
+        f"{f.name}: {_idle_reason(s)}" if s.get("nothing_in_scope")
+        else f"{f.name}: {s['bookable_total']}" for f, s in totals)
     if totals:
         health.maybe_send_digest(f"Bookable seats — {alive}. Monitor running normally.")
     if failed:
@@ -211,12 +213,24 @@ def sweep_one(film: Film, args) -> dict:
         within = args.within_days if args.within_days is not None else film.within_days
     with health.guard(f"sweep:{film.id}"):
         return asyncio.run(sweep_and_persist(
-            film.id, verbose=False, within_days=within))
+            film.id, verbose=False, within_days=within, lead_days=film.lead_days))
+
+
+def _idle_reason(summary: dict) -> str:
+    """Why a film was not swept, in words that say when it will be."""
+    if summary.get("wakes_on"):
+        return (f"not yet showing - first session {summary['opens_on']} "
+                f"({summary['days_away']} days away); watching starts "
+                f"{summary['wakes_on']}")
+    if summary.get("opens_on"):
+        return (f"nothing within its window - first session {summary['opens_on']} "
+                f"({summary['days_away']} days away)")
+    return "no sessions on sale yet"
 
 
 def report_film(film: Film, summary: dict, args) -> None:
     if summary.get("nothing_in_scope"):
-        print(f"[{film.name}] nothing in scope — no sessions in the window yet")
+        print(f"[{film.name}] {_idle_reason(summary)}")
         return
 
     snaps = store.latest_snapshots(1, film.id)

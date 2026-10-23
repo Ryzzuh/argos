@@ -10,7 +10,7 @@ import argparse
 import asyncio
 import json
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from . import health, store
 from .api import Ocapi
@@ -25,31 +25,68 @@ MAX_FAILED_FRACTION = 0.2
 NOISY_FAILURE_SHARE = 0.1
 
 
-async def _load_showtimes(api: Ocapi, dates: list[str], film_id: str,
-                          *, max_age_hours: float = 6.0,
-                          force: bool = False) -> list[dict]:
-    """Showtimes cost one request per date, so cache them between runs.
+def plan_dates(dates: list[str], within_days: int | None,
+               today: date) -> tuple[list[str], str | None]:
+    """The dates worth looking up, and the date the film first screens.
 
-    The date list is a single request and acts as the cache key, so a new
-    screening *date* is picked up on the very next sweep. A new screening on a
-    date that already exists does not change that key, which is why full sweeps
-    pass force=True and re-read the schedule outright.
+    Decided from the date list alone, which is one request, before a single
+    showtime is fetched. A film whose first session is beyond the window then
+    costs two requests per sweep (the film list and the date list) instead of one
+    per date. Dates are ISO strings, so they compare correctly as text.
+    """
+    opens_on = min(dates) if dates else None
+    if within_days is None:
+        return list(dates), opens_on
+    cutoff = (today + timedelta(days=within_days)).isoformat()
+    return [d for d in dates if d <= cutoff], opens_on
+
+
+async def _load_showtimes(api: Ocapi, dates: list[str], film_id: str,
+                          *, listed: list[str] | None = None,
+                          max_age_hours: float = 6.0,
+                          force: bool = False) -> list[dict]:
+    """Showtimes cost one request per date, so cache them per date.
+
+    Per date rather than per request: a windowed run and a full run ask for
+    different sets of dates, and a single cache keyed on the whole set would be
+    invalidated by each in turn. A date seen for the first time is fetched on the
+    spot, so a new screening *date* appears on the very next sweep. A new
+    screening on a date already cached does not, which is why full sweeps pass
+    force=True and re-read the schedule outright.
     """
     cache = DATA / f"showtimes-{film_id}.json"
-    if not force:
-        try:
-            blob = json.loads(cache.read_text())
-            fresh = (time.time() - blob["fetched_at"]) < max_age_hours * 3600
-            if fresh and blob["dates"] == dates:
-                return blob["showtimes"]
-        except Exception:
-            pass
+    try:
+        raw = json.loads(cache.read_text())
+        # Keep only per-date entries. The format before per-date caching had a
+        # list under "dates" and a float under "fetched_at", so none of it
+        # survives this filter and it is simply refetched.
+        entries = {d: e for d, e in raw.items()
+                   if isinstance(e, dict) and "showtimes" in e and "fetched_at" in e}
+    except Exception:
+        entries = {}
 
-    groups = await asyncio.gather(*(api.showtimes_on(d, film_id) for d in dates))
-    showtimes = [s for group in groups for s in group]
+    now = time.time()
+    showtimes: list[dict] = []
+    missing: list[str] = []
+    for d in dates:
+        entry = entries.get(d)
+        fresh = entry and (now - entry["fetched_at"]) < max_age_hours * 3600
+        if fresh and not force:
+            showtimes.extend(entry["showtimes"])
+        else:
+            missing.append(d)
+
+    if missing:
+        groups = await asyncio.gather(*(api.showtimes_on(d, film_id) for d in missing))
+        for d, group in zip(missing, groups):
+            entries[d] = {"fetched_at": now, "showtimes": group}
+            showtimes.extend(group)
+
+    # Forget dates the API no longer lists, so the file cannot grow without end.
+    keep = set(listed if listed is not None else dates)
+    entries = {d: e for d, e in entries.items() if d in keep}
     cache.parent.mkdir(parents=True, exist_ok=True)
-    cache.write_text(json.dumps(
-        {"fetched_at": time.time(), "dates": dates, "showtimes": showtimes}))
+    cache.write_text(json.dumps(entries))
     return showtimes
 
 
@@ -68,7 +105,8 @@ async def _load_layout(api: Ocapi, layout_id: str) -> dict:
 
 
 async def sweep(film_id: str = FILM_ID, *, verbose: bool = True,
-                within_days: int | None = None) -> dict:
+                within_days: int | None = None,
+                lead_days: int | None = None) -> dict:
     async with Ocapi() as api:
         films = await api.films()
         if not any(f.get("id") == film_id for f in films):
@@ -82,35 +120,52 @@ async def sweep(film_id: str = FILM_ID, *, verbose: bool = True,
 
         dates = await api.screening_dates(film_id)
         if not dates:
-            raise SchemaDrift(
-                f"{title} ({film_id}) returned zero screening dates. "
-                "That is either the end of the season or a broken query — "
-                "not something to report as 'no seats'."
-            )
+            # A listed film with nothing on sale is a normal state, not a fault.
+            # It only becomes suspicious if it had upcoming sessions we recorded
+            # and they have vanished, which is either a pulled film or a broken
+            # query, and that is worth being told about.
+            if store.has_upcoming_sessions(film_id, datetime.now(TZ)):
+                raise SchemaDrift(
+                    f"{title} ({film_id}) had upcoming sessions and now lists "
+                    "none. Either the film was pulled or the schedule query broke "
+                    "- not something to report as 'no seats'.")
+            if verbose:
+                print(f"{title}: no sessions on sale yet")
+            return [], _empty_summary(title, film_id, 0, reason="no sessions on sale")
+
+        # Decide from the date list alone, before looking up any showtimes.
+        today = datetime.now(TZ).date()
+        in_scope, opens_on = plan_dates(dates, within_days, today)
+        days_away = (date.fromisoformat(opens_on) - today).days
+
+        # Dormant: the film has not started, and the caller does not want it
+        # watched until its first session is close. Independent of the window, so
+        # it also covers a film set to look at every date.
+        dormant = lead_days is not None and days_away > lead_days
+        if dormant or not in_scope:
+            wakes_on = ((date.fromisoformat(opens_on) - timedelta(days=lead_days))
+                        .isoformat() if dormant else None)
+            if verbose:
+                print(f"{title}: first session {opens_on} ({days_away} days away)"
+                      + (f"; watching starts {wakes_on}" if dormant
+                         else f", outside the {within_days}-day window"))
+            return [], _empty_summary(title, film_id, len(dates), opens_on=opens_on,
+                                      days_away=days_away, wakes_on=wakes_on,
+                                      reason="not yet showing")
 
         # A narrow watchlist run trusts the cache to stay inside the rate-limit
         # budget; a full sweep always re-reads, so an added screening surfaces
         # within one full-sweep interval.
-        showtimes = await _load_showtimes(api, dates, film_id,
+        showtimes = await _load_showtimes(api, in_scope, film_id, listed=dates,
                                           force=within_days is None)
         if not showtimes:
             raise SchemaDrift(
-                f"{len(dates)} screening dates but zero showtimes for {film_id}")
+                f"{len(in_scope)} screening dates but zero showtimes for {film_id}")
 
-        # A watchlist run checks only the near sessions. The API allows ~41
-        # requests per rolling minute, so a narrow sweep finishes inside one
-        # window and can therefore run every few minutes.
         if within_days is not None:
             cutoff = datetime.now(TZ) + timedelta(days=within_days)
             showtimes = [s for s in showtimes
                          if datetime.fromisoformat(s["schedule"]["startsAt"]) <= cutoff]
-            if not showtimes:
-                # Normal, not drift: a film on the watch list may simply not
-                # have opened advance booking yet. Raising here would alert on
-                # every single run for as long as it stays that way.
-                if verbose:
-                    print(f"{title}: no sessions within {within_days} days")
-                return [], _empty_summary(title, film_id, len(dates))
 
         # Sessions that have already started cannot be booked.
         now = datetime.now(TZ)
@@ -141,7 +196,9 @@ async def sweep(film_id: str = FILM_ID, *, verbose: bool = True,
     return _finish(results, indexes, dates, title, film_id, throttled)
 
 
-def _empty_summary(title: str, film_id: str, dates: int) -> dict:
+def _empty_summary(title: str, film_id: str, dates: int, *, opens_on: str | None = None,
+                   days_away: int | None = None, wakes_on: str | None = None,
+                   reason: str = "") -> dict:
     """A sweep that legitimately had nothing in scope to check."""
     return {
         "taken_at": datetime.now(timezone.utc).isoformat(),
@@ -151,6 +208,8 @@ def _empty_summary(title: str, film_id: str, dates: int) -> dict:
         "breakdown": {}, "partial": False, "failed_share": 0.0,
         "throttled_requests": 0, "warnings": [], "transient": [],
         "nothing_in_scope": True,
+        "opens_on": opens_on, "days_away": days_away, "wakes_on": wakes_on,
+        "reason": reason,
     }
 
 
@@ -208,6 +267,10 @@ def persist(reports, summary):
     summary = dict(summary)
     if summary.get("nothing_in_scope"):
         # Nothing was checked, so there is nothing to snapshot or diff against.
+        # A film that is simply not showing yet is a healthy outcome, so it also
+        # clears any failure recorded while the question was still open.
+        health.report_recovery(f"schema:{summary['film_id']}")
+        health.report_recovery(f"sweep:{summary['film_id']}")
         health.write_heartbeat("ok", film_id=summary["film_id"], showtimes=0,
                                bookable=0)
         summary["snapshot_id"] = None
@@ -253,8 +316,10 @@ def persist(reports, summary):
 
 
 async def sweep_and_persist(film_id: str = FILM_ID, *, verbose: bool = True,
-                            within_days: int | None = None) -> dict:
-    reports, summary = await sweep(film_id, verbose=verbose, within_days=within_days)
+                            within_days: int | None = None,
+                            lead_days: int | None = None) -> dict:
+    reports, summary = await sweep(film_id, verbose=verbose, within_days=within_days,
+                                   lead_days=lead_days)
     return persist(reports, summary)
 
 

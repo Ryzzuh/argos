@@ -241,6 +241,15 @@ def latest_full_snapshot_for(film_id: str) -> sqlite3.Row | None:
     return next((r for r in rows if r["showtime_count"] >= widest * 0.75), rows[0])
 
 
+def has_upcoming_sessions(film_id: str, now) -> bool:
+    """Whether we have ever recorded a session for this film that has not started."""
+    from datetime import datetime
+    with connect() as conn:
+        rows = conn.execute("SELECT starts_at FROM showtimes WHERE film_id = ?",
+                            (film_id,)).fetchall()
+    return any(datetime.fromisoformat(r["starts_at"]) > now for r in rows)
+
+
 def latest_full_snapshot() -> sqlite3.Row | None:
     """The newest snapshot that covered the whole schedule.
 

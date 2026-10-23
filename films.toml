@@ -30,6 +30,10 @@ within_days = 14
 id = "HO00000610"
 name = "Dune: Part Three (IMAX 70mm)"
 enabled = false
-within_days = 14
+within_days = 0        # every date
+# Its first session is 16 Dec. Until it is this close, the film costs two
+# requests per sweep (the film list and the date list) instead of one per date
+# plus one per session. Remove this line to watch it from the moment it is on sale.
+lead_days = 14
 # [film.seats]        # a film can override any field of the default zone
 # cols = [14, 32]

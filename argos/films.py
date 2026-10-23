@@ -28,6 +28,7 @@ class Film:
     id: str
     name: str
     within_days: int | None = 14
+    lead_days: int | None = None   # None: watch from the moment sessions exist
     enabled: bool = True
     zone: Zone | None = None     # None: every bookable seat alerts
 
@@ -35,7 +36,7 @@ class Film:
         return f"{self.name} ({self.id})"
 
 
-FILM_KEYS = {"id", "name", "enabled", "within_days", "seats"}
+FILM_KEYS = {"id", "name", "enabled", "within_days", "lead_days", "seats"}
 
 
 def _reject_unknown(table: dict, allowed: set, where: str) -> None:
@@ -60,6 +61,21 @@ def _window(value, where: str) -> int | None:
         return value
     raise ArgosError(f'{where}: within_days must be a number of days, or "all" '
                      f"(or 0) for no limit - got {value!r}")
+
+
+def _lead(value, where: str) -> int | None:
+    """lead_days: begin watching this many days before the first session.
+
+    Absent means watch from the moment sessions exist. Zero means wait until the
+    day of the first session. Anything else that is not a whole number of days is
+    an error, since a lead that silently never wakes looks like a quiet film.
+    """
+    if value is None:
+        return None
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    raise ArgosError(f"{where}: lead_days must be a whole number of days, 0 or more "
+                     f"- got {value!r}")
 
 
 def load(path=None, *, include_disabled: bool = False) -> list[Film]:
@@ -93,6 +109,7 @@ def load(path=None, *, include_disabled: bool = False) -> list[Film]:
             id=entry["id"],
             name=entry.get("name") or entry["id"],
             within_days=_window(entry.get("within_days", 14), label),
+            lead_days=_lead(entry.get("lead_days"), label),
             enabled=bool(entry.get("enabled", True)),
             zone=zone_mod.resolve(default_seats, entry.get("seats"),
                                   f"{label} seats"),
@@ -143,6 +160,8 @@ def main() -> None:
     print(f"{len(active)} of {len(films)} film(s) enabled in {FILMS_FILE.name}:")
     for f in films:
         scope = f"next {f.within_days} days" if f.within_days else "all dates"
+        if f.lead_days is not None:
+            scope += f", starts {f.lead_days} days before first session"
         mark = "on " if f.enabled else "off"
         print(f"  [{mark}] {f.id}  {f.name}  [{scope}]")
         print(f"          seats: {f.zone.describe() if f.zone else 'any bookable seat'}")
