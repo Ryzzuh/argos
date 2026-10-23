@@ -109,7 +109,12 @@ def main() -> None:
     args = parser.parse_args()
 
     health.claim_single_instance()
-    film = load_films()[0]
+    films = load_films()
+    if not films:
+        print("no films enabled in films.toml — nothing to monitor")
+        health.write_heartbeat("ok", showtimes=0, bookable=0, films=0)
+        return
+    film = films[0]
     with health.guard(f"sweep:{film.id}"):
         reports, summary = asyncio.run(sweep(film.id, verbose=False))
 

@@ -167,10 +167,16 @@ time, so a change to `IMAX_FILM_ID` does nothing until all three are reloaded.
 [[film]]
 id = "HO00000547"
 name = "The Odyssey (IMAX 70mm)"
+enabled = true        # false parks it: kept with its settings, not monitored
 within_days = 14      # scope for the 10-minute sweep; the 3-hourly one does all
 ```
 
-Add a second `[[film]]` block to watch more than one. To find an id:
+Add a second `[[film]]` block to watch more than one. `enabled` defaults to
+`true` when omitted, so an existing file keeps working unchanged. Disabling
+every film is a valid state — the sweep says so and exits cleanly rather than
+treating having nothing to do as a fault.
+
+To find an id:
 
 ```bash
 uv run python -m argos.films --available    # every film at the site

@@ -26,13 +26,19 @@ class Film:
     id: str
     name: str
     within_days: int | None = 14
+    enabled: bool = True
 
     def __str__(self) -> str:
         return f"{self.name} ({self.id})"
 
 
-def load(path=None) -> list[Film]:
-    """The configured watch list, or the single fallback film if there is none."""
+def load(path=None, *, include_disabled: bool = False) -> list[Film]:
+    """The watch list.
+
+    Disabled films are parked, not deleted: they stay in the file with their
+    settings intact and are simply skipped. Pass include_disabled to see them,
+    which is what the listing does.
+    """
     path = path or FILMS_FILE
     if not path.exists():
         return [Film(id=FILM_ID, name=FILM_ID)]
@@ -50,6 +56,7 @@ def load(path=None) -> list[Film]:
             id=entry["id"],
             name=entry.get("name") or entry["id"],
             within_days=entry.get("within_days", 14),
+            enabled=bool(entry.get("enabled", True)),
         ))
 
     if not films:
@@ -57,7 +64,7 @@ def load(path=None) -> list[Film]:
             f"{path.name} lists no films. Add a [[film]] entry, or delete the "
             "file to fall back to IMAX_FILM_ID."
         )
-    return films
+    return films if include_disabled else [f for f in films if f.enabled]
 
 
 def cadence_warning(films: list[Film], interval_minutes: int = 10) -> str | None:
@@ -75,7 +82,7 @@ async def _list_available() -> None:
     from .api import Ocapi
     async with Ocapi() as api:
         films = await api.films()
-    watched = {f.id for f in load()}
+    watched = {f.id for f in load()}   # enabled only
     print(f"{len(films)} films at this site (* = currently watched):\n")
     for f in sorted(films, key=lambda x: x["title"]["text"]):
         mark = "*" if f["id"] in watched else " "
@@ -92,12 +99,16 @@ def main() -> None:
         asyncio.run(_list_available())
         return
 
-    films = load()
-    print(f"watching {len(films)} film(s) from {FILMS_FILE.name}:")
+    films = load(include_disabled=True)
+    active = [f for f in films if f.enabled]
+    print(f"{len(active)} of {len(films)} film(s) enabled in {FILMS_FILE.name}:")
     for f in films:
         scope = f"next {f.within_days} days" if f.within_days else "all dates"
-        print(f"  {f.id}  {f.name}  [{scope}]")
-    if warning := cadence_warning(films):
+        mark = "on " if f.enabled else "off"
+        print(f"  [{mark}] {f.id}  {f.name}  [{scope}]")
+    if not active:
+        print("\n! Every film is disabled — nothing will be monitored.")
+    if warning := cadence_warning(active):
         print(f"\n! {warning}")
 
 

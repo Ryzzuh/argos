@@ -150,6 +150,12 @@ def main() -> None:
 
     films = ([Film(id=args.film_id, name=args.film_id)] if args.film_id
              else load_films())
+    if not films:
+        # Every film disabled is a deliberate state, not a fault: say so and
+        # exit cleanly rather than alerting about having nothing to do.
+        print("no films enabled in films.toml — nothing to monitor")
+        health.write_heartbeat("ok", showtimes=0, bookable=0, films=0)
+        return
     if warning := cadence_warning(films):
         health.log_error(warning)
 
